@@ -1,0 +1,96 @@
+:root{
+  --sf-bg: #0b0f14;
+  --sf-surface: #11161c;
+  --sf-elev: #151c24;
+  --sf-border: #1f2831;
+  --sf-text: #e8edf2;
+  --sf-muted: #a9b4bf;
+
+  /* Marca */
+  --sf-primary: #064635;         
+  --sf-accent-1: #29ABE2;        
+  --sf-accent-2: #6A3DE2;        
+
+  /* Gradientes de acento */
+  --sf-grad-acc: linear-gradient(90deg,var(--sf-accent-1),var(--sf-accent-2));
+  --sf-grad-cta: linear-gradient(90deg,#1ad9b4,#18b4f6);
+
+  /* Bootstrap vars (override) */
+  --bs-body-bg: var(--sf-bg);
+  --bs-body-color: var(--sf-text);
+  --bs-border-color: var(--sf-border);
+  --bs-card-bg: var(--sf-surface);
+  --bs-card-border-color: var(--sf-border);
+  --bs-primary: var(--sf-primary);
+  --bs-link-color: var(--sf-accent-1);
+  --bs-link-hover-color: #7dc9ff;
+}
+
+/* Tipografía y base */
+html, body, #root { height: 100%; }
+body {
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  background-color: var(--sf-bg);
+  color: var(--sf-text);
+}
+
+/* Navbar “vidrio” + marca en degradé */
+.navbar-dark{
+  background: rgba(17,22,28,.72);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--sf-border);
+}
+.sf-brand{
+  font-weight: 800;
+  background: var(--sf-grad-acc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.navbar .nav-link{ color: var(--sf-muted); }
+.navbar .nav-link.active,.navbar .nav-link:hover{ color: #ffffff; }
+
+/* Hero moderno */
+.sf-hero{
+  background: linear-gradient(180deg,rgba(41,171,226,.08),transparent 40%),
+              var(--sf-elev);
+  border: 1px solid var(--sf-border);
+  box-shadow: 0 8px 24px rgba(2, 49, 102, 0.35);
+}
+.sf-hero h1{
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+.sf-hero .chip{
+  display:inline-block;padding:.35rem .7rem;border:1px solid var(--sf-border);
+  border-radius:999px;background:rgba(0,0,0,.25);color:var(--sf-muted);
+}
+
+/* Cards de producto */
+.sf-card{
+  background: var(--sf-surface);
+  border: 1px solid var(--sf-border);
+  box-shadow: 0 6px 18px rgba(0,0,0,.28);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.sf-card:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(0,0,0,.38);
+  border-color: #273241;
+}
+.card img{ object-fit: contain; background: #0e1318; border-radius: .6rem; }
+
+/* Botón CTA con degradé */
+.btn-accent{
+  color:#071317;
+  background: var(--sf-grad-cta);
+  border: 0;
+  box-shadow: 0 6px 16px rgba(24,180,246,.25);
+}
+.btn-accent:hover{ filter: brightness(1.06); box-shadow: 0 8px 22px rgba(24,180,246,.35); }
+.btn-outline-info{ border-color:#2aaee7; color:#bfe8ff; }
+.btn-outline-info:hover{ background:#143247; border-color:#4dc3ff; color:#e9faff; }
+
+/* Pequeños detalles en la categoria*/
+.text-muted{ color: var(--sf-muted) !important; }
+.border-soft{ border:1px solid var(--sf-border); }
