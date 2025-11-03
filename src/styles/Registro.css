@@ -1,0 +1,73 @@
+/* Registro.css */
+.sf-form {
+    max-width: 760px;
+    margin: 0 auto;
+    background: var(--sf-surface);
+    padding: 28px;
+    border-radius: var(--sf-radius);
+    box-shadow: var(--sf-shadow);
+    border: 1px solid var(--sf-border);
+
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.sf-form h1 {
+    grid-column: 1 / -1;
+    font-size: 1.7rem;
+    margin: 0 0 8px 0;
+    color: var(--sf-text);
+}
+
+/* Campos */
+.sf-label {
+    color: var(--sf-text-muted);
+    display: block;
+    margin-bottom: 6px;
+}
+
+.sf-input,
+.sf-select {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--sf-border);
+    background: var(--sf-input-bg);
+    color: var(--sf-text);
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.sf-input::placeholder {
+    color: #7d8ca1;
+}
+
+.sf-input:focus,
+.sf-select:focus {
+    border-color: rgba(41, 171, 226, .45);
+    box-shadow: 0 0 0 3px rgba(106, 61, 226, .28), 0 0 0 1px rgba(41, 171, 226, .6);
+}
+
+/* Errores */
+.sf-error {
+    color: var(--sf-danger);
+    font-size: .9rem;
+    margin-top: -4px;
+    margin-bottom: 4px;
+}
+
+/* Botón principal */
+.sf-form button[type="submit"] {
+    grid-column: 1 / -1;
+    width: 220px;
+    justify-self: start;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .sf-form {
+        grid-template-columns: 1fr;
+        padding: 20px;
+    }
+}

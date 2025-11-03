@@ -1,13 +1,6 @@
-import type { Producto } from '../../types/Producto'
 import CuadriculaProductos from '../../components/productos/CuadriculaProductos'
 
-export default function Inicio({
-  productos,
-  onAgregar
-}: {
-  productos: Producto[]
-  onAgregar?: (p: Producto) => void
-}) {
+export default function Blog() {
   return (
     <>
       <header className="mb-4">
@@ -17,7 +10,7 @@ export default function Inicio({
         </div>
       </header>
 
-      <CuadriculaProductos productos={productos} onAgregar={onAgregar} />
+      <CuadriculaProductos />
     </>
   )
 }

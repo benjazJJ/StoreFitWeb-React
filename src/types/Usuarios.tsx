@@ -4,6 +4,7 @@ export interface RegistroForm{
     nombre: string;
     apellidos: string;
     correo: string;
+    numeroTelefono: string;
     fechaNacimiento: string;
     regionId: string;
     comunaId: string;
