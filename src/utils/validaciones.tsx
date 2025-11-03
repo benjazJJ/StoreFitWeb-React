@@ -30,22 +30,23 @@ export function dominioCorreoValido(correo: string) {
 export function rutValido(rut: string) {
     const clean = rut.replace(/[.,-]/g, '').toUpperCase();
     if (clean.length < 2) return false;
+  // cuerpo = todos los dígitos excepto el dígito verificador (último)
+  const cuerpo = clean.slice(0, -1);
+  const dv = clean.slice(-1);
 
-    const cuerpo = clean.slice(-1);
-    const dv = clean.slice(-1);
+  let suma = 0;
+  let mul = 2;
 
-    let suma = 0;
-    let mul = 2;
+  // recorremos de derecha a izquierda
+  for (let i = cuerpo.length - 1; i >= 0; i--) {
+    suma += parseInt(cuerpo.charAt(i), 10) * mul;
+    mul = mul === 7 ? 2 : mul + 1;
+  }
 
-    for (let i = cuerpo.length -1; i <= 0; i--){
-        suma += parseInt(cuerpo[i], 10) * mul;
-        mul = mul === 7 ? 2 : mul + 1;
-    }
+  const resto = 11 - (suma % 11);
+  const dvCalc = resto === 11 ? "0" : resto === 10 ? "K" : String(resto);
 
-    const resto = 11 - (suma % 11);
-    const dvCalc = resto === 11 ? "0" : resto === 10 ? "K" : String(resto);
-    
-    return dvCalc === dv;
+  return dvCalc === dv;
 }
 
 //Contraseña válida

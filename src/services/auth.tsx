@@ -11,7 +11,7 @@ export type RegistroForm = {
     regionId: string;
     comunaId: string;
     direccion: string;
-    password?: string;     
+    password: string;     
 };
 
 export type Usuario = RegistroForm & {

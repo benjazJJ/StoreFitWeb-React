@@ -4,7 +4,7 @@
     margin: 0 auto;
     background: var(--sf-surface);
     padding: 28px;
-    border-radius: var(--sf-radius);
+    border-radius: 28px;
     box-shadow: var(--sf-shadow);
     border: 1px solid var(--sf-border);
 

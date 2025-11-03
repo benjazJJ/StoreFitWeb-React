@@ -10,7 +10,7 @@ export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) 
   }
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark">
+    <nav className={`navbar navbar-expand-lg ${theme === 'dark' ? 'navbar-dark' : 'navbar-light'}`}>
       <div className="container">
         <a className="navbar-brand" href="#">
           <span className="sf-brand">StoreFit</span> <span className="fw-semibold">Web</span>
@@ -38,10 +38,22 @@ export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) 
               }} 
               title="Cambiar tema"
             >
-              <i className={`bi ${theme === 'light' ? 'bi-moon-fill' : 'bi-sun-fill'}`} style={{ color: 'white' }}></i>
+              <i
+                className={`bi ${theme === 'light' ? 'bi-moon-fill' : 'bi-sun-fill'}`}
+                style={{ color: theme === 'dark' ? 'white' : 'black' }}
+              ></i>
             </button>
-            <button className="btn btn-outline-light dropdown-toggle d-flex align-items-center" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
-              <i className="bi bi-person-circle" style={{ fontSize: 20 }}></i>
+            <button
+              className={
+                theme === 'dark'
+                  ? 'btn btn-outline-light dropdown-toggle d-flex align-items-center'
+                  : 'btn btn-outline-secondary dropdown-toggle d-flex align-items-center'
+              }
+              id="userMenu"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <i className="bi bi-person-circle" style={{ fontSize: 20, color: theme === 'dark' ? 'white' : 'black' }}></i>
             </button>
             <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
               <li><Link className="dropdown-item" to="/InicioSesion">Iniciar sesión</Link></li>
