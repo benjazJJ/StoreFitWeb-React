@@ -1,72 +1,478 @@
-/* Login.css */
+/* ============================================
+   CONTENEDOR PRINCIPAL DEL LOGIN
+   ============================================ */
+.sf-auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
 .sf-form--auth {
-    max-width: 460px;
-    margin: 0 auto;
-    background: var(--sf-surface);
-    padding: 26px;
-    border-radius: 28px;
-    box-shadow: var(--sf-shadow);
-    border: 1px solid var(--sf-border);
+    width: 100%;
+    max-width: 440px;
+    background: var(--sf-surface, #1a1a1a);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06),
+        0 0 0 1px rgba(255, 255, 255, 0.05);
+    transition: box-shadow 0.3s ease;
 }
 
-.sf-form--auth h1 {
-    font-size: 1.6rem;
-    margin: 0 0 12px 0;
-    color: var(--sf-text);
+.sf-form--auth:hover {
+    box-shadow:
+        0 10px 15px -3px rgba(0, 0, 0, 0.15),
+        0 4px 6px -2px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
-.sf-label {
-    color: var(--sf-text-muted);
-    display: block;
-    margin-bottom: 6px;
+/* ============================================
+   HEADER DEL FORMULARIO
+   ============================================ */
+.sf-auth-header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.sf-auth-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--sf-text, #ffffff);
+    margin: 0 0 8px 0;
+    letter-spacing: -0.02em;
+}
+
+.sf-auth-subtitle {
+    font-size: 15px;
+    color: var(--sf-text-muted, rgba(255, 255, 255, 0.6));
+    margin: 0;
+    font-weight: 400;
+}
+
+/* ============================================
+   ALERTAS
+   ============================================ */
+.sf-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.sf-alert--error {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #ff6b6b;
+}
+
+.sf-alert-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* ============================================
+   CUERPO DEL FORMULARIO
+   ============================================ */
+.sf-form-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ============================================
+   CAMPOS DE FORMULARIO
+   ============================================ */
+.sf-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sf-field-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--sf-text, #ffffff);
+    letter-spacing: -0.01em;
+}
+
+.sf-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.sf-input-icon {
+    position: absolute;
+    left: 16px;
+    width: 20px;
+    height: 20px;
+    color: var(--sf-text-muted, rgba(255, 255, 255, 0.5));
+    pointer-events: none;
+    transition: color 0.2s ease;
 }
 
 .sf-input {
     width: 100%;
-    padding: 12px 14px;
-    border-radius: 10px;
-    border: 1px solid var(--sf-border);
-    background: var(--sf-input-bg);
-    color: var(--sf-text);
+    height: 52px;
+    padding: 0 48px;
+    font-size: 15px;
+    color: var(--sf-text, #ffffff);
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
     outline: none;
-    margin-bottom: 10px;
-    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    transition: all 0.2s ease;
+}
+
+.sf-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.sf-input:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 .sf-input:focus {
-    border-color: rgba(41, 171, 226, .45);
-    box-shadow: 0 0 0 3px rgba(106, 61, 226, .28), 0 0 0 1px rgba(41, 171, 226, .6);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--sf-primary, #6366f1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
-.sf-error {
-    color: var(--sf-danger);
-    font-size: .9rem;
-    margin-bottom: 8px;
+.sf-input:focus+.sf-input-action,
+.sf-input-wrapper:focus-within .sf-input-icon {
+    color: var(--sf-primary, #6366f1);
 }
 
-/* Botón llena ancho */
-.sf-form--auth button[type="submit"] {
+.sf-input--error {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.sf-input--error:focus {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.sf-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Botón de acción dentro del input (toggle password) */
+.sf-input-action {
+    position: absolute;
+    right: 14px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--sf-text-muted, rgba(255, 255, 255, 0.5));
+    cursor: pointer;
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sf-input-action:hover:not(:disabled) {
+    color: var(--sf-text, #ffffff);
+}
+
+.sf-input-action:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.sf-input-action svg {
     width: 100%;
+    height: 100%;
 }
 
-/* Links */
-.sf-auth-extra {
-    margin-top: 10px;
+/* Mensaje de error */
+.sf-field-error {
+    font-size: 13px;
+    color: #ff6b6b;
+    font-weight: 600;
 }
 
-.sf-auth-extra a {
-    color: #7cc9ff;
+/* ============================================
+   CHECKBOX PERSONALIZADO
+   ============================================ */
+.sf-checkbox-wrapper {
+    margin: 4px 0;
 }
 
-.sf-auth-extra a:hover {
-    color: #b0dfff;
+.sf-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.sf-checkbox-input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.sf-checkbox-custom {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.sf-checkbox-custom::after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 5px;
+    top: 2px;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.sf-checkbox-input:checked~.sf-checkbox-custom {
+    background: var(--sf-primary, #6366f1);
+    border-color: var(--sf-primary, #6366f1);
+}
+
+.sf-checkbox-input:checked~.sf-checkbox-custom::after {
+    display: block;
+}
+
+.sf-checkbox-label:hover .sf-checkbox-custom {
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.sf-checkbox-input:focus~.sf-checkbox-custom {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.sf-checkbox-input:disabled~.sf-checkbox-custom {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.sf-checkbox-text {
+    font-size: 14px;
+    color: var(--sf-text-muted, rgba(255, 255, 255, 0.7));
+    font-weight: 500;
+}
+
+/* ============================================
+   BOTÓN PRINCIPAL
+   ============================================ */
+.sf-btn {
+    width: 100%;
+    height: 52px;
+    padding: 0 24px;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    outline: none;
+}
+
+.sf-btn--primary {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: #ffffff;
+    box-shadow:
+        0 1px 2px 0 rgba(0, 0, 0, 0.05),
+        0 0 0 1px rgba(99, 102, 241, 0.1);
+}
+
+.sf-btn--primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #5558e3 0%, #7c4ee8 100%);
+    box-shadow:
+        0 4px 8px -2px rgba(99, 102, 241, 0.3),
+        0 0 0 1px rgba(99, 102, 241, 0.2);
+    transform: translateY(-1px);
+}
+
+.sf-btn--primary:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow:
+        0 1px 2px 0 rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(99, 102, 241, 0.15);
+}
+
+.sf-btn--primary:focus-visible {
+    box-shadow:
+        0 0 0 3px rgba(99, 102, 241, 0.3),
+        0 4px 8px -2px rgba(99, 102, 241, 0.2);
+}
+
+.sf-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* Spinner del botón */
+.sf-btn-spinner {
+    width: 20px;
+    height: 20px;
+    animation: spin 0.8s linear infinite;
+}
+
+.sf-spinner-track {
+    stroke: rgba(255, 255, 255, 0.25);
+}
+
+.sf-spinner-circle {
+    stroke: currentColor;
+    stroke-dasharray: 63;
+    stroke-dashoffset: 50;
+    stroke-linecap: round;
+    transform-origin: center;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================
+   FOOTER DEL FORMULARIO
+   ============================================ */
+.sf-auth-footer {
+    text-align: center;
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sf-auth-footer-text {
+    font-size: 14px;
+    color: var(--sf-text-muted, rgba(255, 255, 255, 0.6));
+}
+
+.sf-auth-link {
+    font-size: 14px;
+    color: var(--sf-primary, #6366f1);
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: 6px;
+    transition: color 0.2s ease;
+}
+
+.sf-auth-link:hover {
+    color: #8b5cf6;
     text-decoration: underline;
 }
 
-/* Responsivo */
-@media (max-width: 768px) {
-    .sf-form {
-        grid-template-columns: 1fr;
-        padding: 20px;
+.sf-auth-link:focus-visible {
+    outline: 2px solid var(--sf-primary, #6366f1);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 640px) {
+    .sf-auth-container {
+        padding: 16px;
     }
+
+    .sf-form--auth {
+        padding: 32px 24px;
+    }
+
+    .sf-auth-header h1 {
+        font-size: 24px;
+    }
+
+    .sf-auth-subtitle {
+        font-size: 14px;
+    }
+
+    .sf-input,
+    .sf-btn {
+        height: 48px;
+    }
+}
+
+/* ============================================
+   MODO CLARO
+   ============================================ */
+[data-theme="light"] .sf-form--auth,
+.sf-form--auth[data-theme="light"] {
+    background: #ffffff;
+    border-color: #e5e7eb;
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.05),
+        0 2px 4px -1px rgba(0, 0, 0, 0.03),
+        0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .sf-auth-header h1,
+[data-theme="light"] .sf-field-label {
+    color: #1f2937;
+}
+
+[data-theme="light"] .sf-auth-subtitle,
+[data-theme="light"] .sf-checkbox-text,
+[data-theme="light"] .sf-auth-footer-text {
+    color: #6b7280;
+}
+
+[data-theme="light"] .sf-input {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+    color: #1f2937;
+}
+
+[data-theme="light"] .sf-input::placeholder {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .sf-input:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+[data-theme="light"] .sf-input:focus {
+    background: #ffffff;
+}
+
+[data-theme="light"] .sf-input-icon,
+[data-theme="light"] .sf-input-action {
+    color: #6b7280;
+}
+
+[data-theme="light"] .sf-checkbox-custom {
+    background: #f9fafb;
+    border-color: #d1d5db;
+}
+
+[data-theme="light"] .sf-auth-footer {
+    border-top-color: #e5e7eb;
 }

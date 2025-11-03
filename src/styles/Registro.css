@@ -1,73 +1,474 @@
-/* Registro.css */
-.sf-form {
-    max-width: 760px;
-    margin: 0 auto;
-    background: var(--sf-surface);
-    padding: 28px;
-    border-radius: 28px;
-    box-shadow: var(--sf-shadow);
-    border: 1px solid var(--sf-border);
+/* CONTENEDOR PRINCIPAL */
+.sf-auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+    background: transparent !important;
+}
 
+.sf-form--auth.sf-form--registro {
+    width: 100%;
+    max-width: 920px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    padding: 48px 56px;
+    box-shadow:
+        0 20px 25px -5px rgba(0, 0, 0, 0.3),
+        0 10px 10px -5px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.sf-form--auth.sf-form--registro:hover {
+    box-shadow:
+        0 25px 30px -5px rgba(0, 0, 0, 0.35),
+        0 15px 15px -5px rgba(0, 0, 0, 0.25),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* HEADER DEL FORMULARIO*/
+.sf-auth-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.sf-auth-header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.sf-auth-subtitle {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+    font-weight: 400;
+}
+
+/* ALERTAS */
+.sf-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 14px;
+    margin-bottom: 28px;
+    font-size: 14px;
+    line-height: 1.5;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.sf-alert--error {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ff6b6b;
+}
+
+.sf-alert-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* CUERPO DEL FORMULARIO - DISEÑO EN GRID */
+.sf-form-body {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
+    gap: 24px 28px;
 }
 
-.sf-form h1 {
+/* Campos que ocupan todo el ancho */
+.sf-field--full {
     grid-column: 1 / -1;
-    font-size: 1.7rem;
-    margin: 0 0 8px 0;
-    color: var(--sf-text);
 }
 
-/* Campos */
-.sf-label {
-    color: var(--sf-text-muted);
-    display: block;
-    margin-bottom: 6px;
+/* Agrupación visual */
+.sf-form-section {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px 28px;
+    padding-top: 4px;
+}
+
+/* CAMPOS DE FORMULARIO */
+.sf-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sf-field-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+}
+
+.sf-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.sf-input-icon {
+    position: absolute;
+    left: 16px;
+    width: 20px;
+    height: 20px;
+    color: rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+    transition: color 0.2s ease;
+    z-index: 1;
 }
 
 .sf-input,
 .sf-select {
     width: 100%;
-    padding: 12px 14px;
-    border-radius: 10px;
-    border: 1px solid var(--sf-border);
-    background: var(--sf-input-bg);
-    color: var(--sf-text);
+    height: 50px;
+    padding: 0 16px 0 48px;
+    font-size: 15px;
+    font-family: inherit;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
     outline: none;
-    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    transition: all 0.2s ease;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* Select específico */
+.sf-select {
+    padding-right: 40px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='rgba(255,255,255,0.4)'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 20px;
+    cursor: pointer;
 }
 
 .sf-input::placeholder {
-    color: #7d8ca1;
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.sf-input:hover,
+.sf-select:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 .sf-input:focus,
 .sf-select:focus {
-    border-color: rgba(41, 171, 226, .45);
-    box-shadow: 0 0 0 3px rgba(106, 61, 226, .28), 0 0 0 1px rgba(41, 171, 226, .6);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
-/* Errores */
-.sf-error {
-    color: var(--sf-danger);
-    font-size: .9rem;
-    margin-top: -4px;
-    margin-bottom: 4px;
+.sf-input:focus~.sf-input-icon,
+.sf-select:focus~.sf-input-icon,
+.sf-input-wrapper:focus-within .sf-input-icon {
+    color: #6366f1;
 }
 
-/* Botón principal */
-.sf-form button[type="submit"] {
+.sf-input--error,
+.sf-select.sf-input--error {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+}
+
+.sf-input--error:focus,
+.sf-select.sf-input--error:focus {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.sf-input:disabled,
+.sf-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Mensaje de error */
+.sf-field-error {
+    font-size: 13px;
+    color: #ff6b6b;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    animation: slideDown 0.2s ease;
+}
+
+.sf-field-error::before {
+    content: "⚠";
+    font-size: 14px;
+}
+
+/* BOTÓN PRINCIPAL*/
+.sf-btn {
     grid-column: 1 / -1;
-    width: 220px;
-    justify-self: start;
+    width: 100%;
+    height: 56px;
+    padding: 0 24px;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: inherit;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    outline: none;
+    margin-top: 12px;
 }
 
-/* Responsivo */
-@media (max-width: 768px) {
-    .sf-form {
-        grid-template-columns: 1fr;
-        padding: 20px;
+.sf-btn--primary {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: #ffffff;
+    box-shadow:
+        0 4px 6px -1px rgba(99, 102, 241, 0.3),
+        0 2px 4px -1px rgba(99, 102, 241, 0.2),
+        0 0 0 1px rgba(99, 102, 241, 0.1);
+}
+
+.sf-btn--primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #5558e3 0%, #7c4ee8 100%);
+    box-shadow:
+        0 10px 15px -3px rgba(99, 102, 241, 0.4),
+        0 4px 6px -2px rgba(99, 102, 241, 0.3),
+        0 0 0 1px rgba(99, 102, 241, 0.2);
+    transform: translateY(-2px);
+}
+
+.sf-btn--primary:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow:
+        0 4px 6px -1px rgba(99, 102, 241, 0.3),
+        0 2px 4px -1px rgba(99, 102, 241, 0.2);
+}
+
+.sf-btn--primary:focus-visible {
+    box-shadow:
+        0 0 0 4px rgba(99, 102, 241, 0.3),
+        0 10px 15px -3px rgba(99, 102, 241, 0.3);
+}
+
+.sf-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* Spinner del botón */
+.sf-btn-spinner {
+    width: 20px;
+    height: 20px;
+    animation: spin 0.8s linear infinite;
+}
+
+.sf-spinner-track {
+    stroke: rgba(255, 255, 255, 0.25);
+}
+
+.sf-spinner-circle {
+    stroke: currentColor;
+    stroke-dasharray: 63;
+    stroke-dashoffset: 50;
+    stroke-linecap: round;
+    transform-origin: center;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
     }
+}
+
+/* FOOTER DEL FORMULARIO */
+.sf-auth-footer {
+    text-align: center;
+    margin-top: 32px;
+    padding-top: 28px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sf-auth-footer-text {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.sf-auth-link {
+    font-size: 14px;
+    color: #6366f1;
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: 6px;
+    transition: color 0.2s ease;
+}
+
+.sf-auth-link:hover {
+    color: #8b5cf6;
+    text-decoration: underline;
+}
+
+.sf-auth-link:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* RESPONSIVE*/
+@media (max-width: 968px) {
+    .sf-form--auth {
+        max-width: 720px;
+        padding: 44px 48px;
+    }
+}
+
+@media (max-width: 768px) {
+
+    .sf-form-body,
+    .sf-form-section {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+
+    .sf-field--full {
+        grid-column: 1;
+    }
+
+    .sf-form--auth {
+        max-width: 540px;
+        padding: 40px 36px;
+    }
+
+    .sf-auth-header {
+        margin-bottom: 32px;
+    }
+}
+
+@media (max-width: 640px) {
+    .sf-auth-container {
+        padding: 24px 16px;
+    }
+
+    .sf-form--auth {
+        padding: 36px 24px;
+        border-radius: 20px;
+    }
+
+    .sf-auth-header {
+        margin-bottom: 28px;
+    }
+
+    .sf-auth-header h1 {
+        font-size: 26px;
+    }
+
+    .sf-auth-subtitle {
+        font-size: 14px;
+    }
+
+    .sf-input,
+    .sf-select {
+        height: 48px;
+    }
+
+    .sf-btn {
+        height: 52px;
+        font-size: 15px;
+    }
+
+    .sf-form-body {
+        gap: 16px;
+    }
+}
+
+/* MODO CLARO*/
+[data-theme="light"] .sf-auth-container {
+    background: transparent !important;
+}
+
+[data-theme="light"] .sf-form--auth.sf-form--registro {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow:
+        0 20px 25px -5px rgba(0, 0, 0, 0.08),
+        0 10px 10px -5px rgba(0, 0, 0, 0.05),
+        0 0 0 1px rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(10px);
+}
+
+[data-theme="light"] .sf-auth-header h1 {
+    background: linear-gradient(135deg, #1f2937 0%, #4b5563 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-theme="light"] .sf-auth-subtitle,
+[data-theme="light"] .sf-auth-footer-text {
+    color: #6b7280;
+}
+
+[data-theme="light"] .sf-field-label {
+    color: #1f2937;
+}
+
+[data-theme="light"] .sf-input,
+[data-theme="light"] .sf-select {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+    color: #1f2937;
+}
+
+[data-theme="light"] .sf-input::placeholder {
+    color: #9ca3af;
+}
+
+[data-theme="light"] .sf-input:hover,
+[data-theme="light"] .sf-select:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+[data-theme="light"] .sf-input:focus,
+[data-theme="light"] .sf-select:focus {
+    background: #ffffff;
+}
+
+[data-theme="light"] .sf-input-icon {
+    color: #6b7280;
+}
+
+[data-theme="light"] .sf-auth-footer {
+    border-top-color: #e5e7eb;
 }

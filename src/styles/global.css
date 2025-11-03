@@ -12,7 +12,6 @@
   --sf-error: #dc3545;
   --sf-link: #0066cc;
   --sf-bg: #f0f2f5;
-  /* Navbar background in light theme: white so links and controls are visible */
   --sf-navbar-bg: var(--sf-surface);
   --sf-dropdown-bg: #ffffff;
   --sf-dropdown-text: #333333;

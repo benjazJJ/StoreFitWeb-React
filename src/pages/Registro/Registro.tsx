@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from 'react-router-dom'
-import '../../styles/Registro.css'
+import { useNavigate, Link } from "react-router-dom";
+import "../../styles/Registro.css";
 import { REGIONES } from "../../data/Regiones";
 import {
-    passwordValida,
-    dominioCorreoValido,
-    requerido,
-    rutValido,
-    longitudMaxima,
+    validarRut,
+    validarNombre,
+    validarCorreo,
+    validarTelefono,
+    validarPassword,
+    formatearRut,
+    longitudMaxima
 } from "../../utils/validaciones";
 import { registrarUsuario, type RegistroForm } from "../../services/auth";
 
@@ -28,195 +30,418 @@ export default function Registro() {
     const [form, setForm] = useState<RegistroForm>(inicial);
     const [errores, setErrores] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
-    const [lastError, setLastError] = useState<string | null>(null);
     const [touched, setTouched] = useState<Record<string, boolean>>({});
     const navigate = useNavigate();
 
     const comunasFiltradas = useMemo(
-        () => REGIONES.find(r => r.slug === form.regionId)?.comunas || [],
+        () => REGIONES.find((r) => r.slug === form.regionId)?.comunas || [],
         [form.regionId]
     );
 
     function set<K extends keyof RegistroForm>(clave: K, valor: RegistroForm[K]) {
         if (clave === "regionId") {
-            setForm(prev => ({ ...prev, regionId: valor as string, comunaId: "" }));
+            setForm((prev) => ({ ...prev, regionId: valor as string, comunaId: "" }));
             return;
         }
-        setForm(prev => ({ ...prev, [clave]: valor }));
+        setForm((prev) => ({ ...prev, [clave]: valor }));
     }
 
     function markTouched(k: keyof RegistroForm) {
-        setTouched(prev => ({ ...prev, [k]: true }));
+        setTouched((prev) => ({ ...prev, [k]: true }));
     }
 
-    const rutFormatoValido = (r: string) => {
-        return /^\d{1,2}(?:\.\d{3})*-?[0-9Kk]$/.test(r.trim());
+    function validarCampo(campo: keyof RegistroForm): string | undefined {
+        const valor = form[campo];
+        if (typeof valor !== 'string') return undefined;
+
+        switch (campo) {
+            case 'rut':
+                return validarRut(valor);
+            case 'nombre':
+                return validarNombre(valor, 'nombre');
+            case 'apellidos':
+                return validarNombre(valor, 'apellidos');
+            case 'correo':
+                return validarCorreo(valor);
+            case 'numeroTelefono':
+                return validarTelefono(valor);
+            case 'fechaNacimiento':
+                if (!valor) return "La fecha de nacimiento es obligatoria";
+                const fecha = new Date(valor);
+                const hoy = new Date();
+                if (fecha > hoy) return "La fecha no puede ser futura";
+                if (fecha.getFullYear() > hoy.getFullYear() - 15)
+                    return "Debes tener al menos 15 años";
+                return undefined;
+            case 'regionId':
+                return !valor ? "Selecciona una región" : undefined;
+            case 'comunaId':
+                return !valor ? "Selecciona una comuna" : undefined;
+            case 'direccion':
+                if (!valor) return "La dirección es obligatoria";
+                if (!longitudMaxima(valor, 120)) return "Máximo 120 caracteres";
+                return undefined;
+            case 'password':
+                return validarPassword(valor);
+            default:
+                return undefined;
+        }
+    }
+
+    function validarCampoOnChange(campo: keyof RegistroForm) {
+        if (!touched[campo]) return;
+        const error = validarCampo(campo);
+        setErrores(prev => {
+            const next = { ...prev };
+            const key = campo === 'password' ? 'contrasenia' : campo;
+            if (error) {
+                next[key] = error;
+            } else {
+                delete next[key];
+            }
+            return next;
+        });
+    }
+
+    function validarCampoOnBlur(campo: keyof RegistroForm) {
+        markTouched(campo);
+        const error = validarCampo(campo);
+        const key = campo === 'password' ? 'contrasenia' : campo;
+        if (error) {
+            setErrores(prev => ({ ...prev, [key]: error }));
+        } else {
+            setErrores(prev => {
+                const next = { ...prev };
+                delete next[key];
+                return next;
+            });
+        }
     }
 
     function validar(): boolean {
         const e: Record<string, string> = {};
-
-        if (!requerido(form.rut) || !rutValido(form.rut) || !rutFormatoValido(form.rut))
-            e.rut = "RUT inválido (formato 12.345.678-9)";
-        if (!requerido(form.nombre) || !longitudMaxima(form.nombre, 100))
-            e.nombre = "Requerido (máx. 100)";
-        if (!requerido(form.apellidos) || !longitudMaxima(form.apellidos, 100))
-            e.apellidos = "Requerido (máx. 100)";
-
-        if (!requerido(form.correo) || !longitudMaxima(form.correo, 100) || !dominioCorreoValido(form.correo))
-            e.correo = "Correo inválido o dominio no permitido";
-
-        if (!requerido(form.numeroTelefono))
-            e.numeroTelefono = "Número de teléfono requerido";
-
-        if (!requerido(form.fechaNacimiento))
-            e.fechaNacimiento = "Requerido";
-
-        if (!requerido(form.regionId))
-            e.regionId = "Selecciona una región";
-
-        if (!requerido(form.comunaId))
-            e.comunaId = "Selecciona una comuna";
-
-        if (!requerido(form.direccion) || !longitudMaxima(form.direccion, 120))
-            e.direccion = "Requerido (máx. 120)";
-
-        if (!requerido(form.password) || !passwordValida(form.password ?? ""))
-            e.contrasenia = "Contraseña entre 4 y 10 caracteres";
-
+        (Object.keys(form) as Array<keyof RegistroForm>).forEach(campo => {
+            const error = validarCampo(campo);
+            if (error) e[campo === 'password' ? 'contrasenia' : campo] = error;
+        });
         setErrores(e);
         return Object.keys(e).length === 0;
     }
 
     function onSubmit(ev: React.FormEvent) {
         ev.preventDefault();
+        setErrores({});
         if (!validar()) return;
-
         if (submitting) return;
+
         setSubmitting(true);
         try {
-            console.log('Registro - datos enviados:', form);
+            console.log("Registro - datos enviados:", form);
             const { ok, mensaje } = registrarUsuario(form);
             if (!ok) {
-                setErrores({ global: mensaje ?? "No se pudo registrar" });
-                setLastError(mensaje ?? 'registro-failed');
+                if (mensaje?.toLowerCase().includes("rut")) {
+                    setErrores({ rut: mensaje });
+                } else {
+                    setErrores({ global: mensaje ?? "No se pudo registrar" });
+                }
                 return;
             }
             setErrores({});
-            setLastError(null);
             setForm(inicial);
-            navigate('/InicioSesion');
+            navigate("/InicioSesion");
         } catch (err: any) {
-            console.error('Error al registrar usuario:', err);
-            const msg = err?.message ? String(err.message) : String(err);
-            setErrores({ global: 'Error inesperado al registrar. Revisa la consola.' });
-            setLastError(msg);
+            console.error("Error al registrar usuario:", err);
+            setErrores({ global: "Error inesperado al registrar. Intenta nuevamente." });
         } finally {
             setSubmitting(false);
         }
     }
 
     return (
-        <form onSubmit={onSubmit} className="sf-form">
-            <h1>Registro</h1>
-            {errores.global && <p className="sf-error">{errores.global}</p>}
-            {lastError && <pre style={{ color: 'var(--sf-error)' }}>{lastError}</pre>}
+        <div className="sf-auth-container">
+            <form onSubmit={onSubmit} className="sf-form--auth">
+                <div className="sf-auth-header">
+                    <h1>Crear cuenta</h1>
+                    <p className="sf-auth-subtitle">Completa tus datos para registrarte</p>
+                </div>
 
-            <label className="sf-label">RUT
-                <input
-                    className="sf-input"
-                    placeholder="12.345.678-9"
-                    value={form.rut}
-                    onChange={(e) => set("rut", e.target.value)}
-                />
-            </label>
-            {errores.rut && <small className="sf-error">{errores.rut}</small>}
+                {errores.global && (
+                    <div className="sf-alert sf-alert--error">
+                        <svg className="sf-alert-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{errores.global}</span>
+                    </div>
+                )}
 
-            <label className="sf-label">Nombre
-                <input className="sf-input" value={form.nombre} onChange={(e) => set("nombre", e.target.value)} />
-            </label>
-            {errores.nombre && <small className="sf-error">{errores.nombre}</small>}
+                <div className="sf-form-body">
+                    {/* Fila 1: RUT y Nombre */}
+                    <div className="sf-field">
+                        <label className="sf-field-label">RUT</label>
+                        <div className="sf-input-wrapper">
+                            <svg className="sf-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                            </svg>
+                            <input
+                                className={`sf-input ${errores.rut ? "sf-input--error" : ""}`}
+                                placeholder="12.345.678-9"
+                                value={form.rut}
+                                onChange={(e) => {
+                                    const formateado = formatearRut(e.target.value);
+                                    set("rut", formateado);
+                                    validarCampoOnChange("rut");
+                                }}
+                                onBlur={() => validarCampoOnBlur("rut")}
+                                disabled={submitting}
+                            />
+                        </div>
+                        {errores.rut && <small className="sf-field-error">{errores.rut}</small>}
+                    </div>
 
-            <label className="sf-label">Apellidos
-                <input className="sf-input" value={form.apellidos} onChange={(e) => set("apellidos", e.target.value)} />
-            </label>
-            {errores.apellidos && <small className="sf-error">{errores.apellidos}</small>}
+                    <div className="sf-field">
+                        <label className="sf-field-label">Nombre</label>
+                        <div className="sf-input-wrapper">
+                            <svg className="sf-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <input
+                                className={`sf-input ${errores.nombre ? "sf-input--error" : ""}`}
+                                placeholder="Tu nombre"
+                                value={form.nombre}
+                                onChange={(e) => {
+                                    set("nombre", e.target.value);
+                                    validarCampoOnChange("nombre");
+                                }}
+                                onBlur={() => validarCampoOnBlur("nombre")}
+                                disabled={submitting}
+                            />
+                        </div>
+                        {errores.nombre && <small className="sf-field-error">{errores.nombre}</small>}
+                    </div>
 
-            <label className="sf-label">Correo
-                <input
-                    type="email"
-                    className="sf-input"
-                    value={form.correo}
-                    onChange={(e) => set("correo", e.target.value)}
-                    placeholder="tucorreo@duoc.cl"
-                />
-            </label>
-            {errores.correo && <small className="sf-error">{errores.correo}</small>}
+                    {/* Fila 2: Apellidos (full width) */}
+                    <div className="sf-field sf-field--full">
+                        <label className="sf-field-label">Apellidos</label>
+                        <div className="sf-input-wrapper">
+                            <svg className="sf-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <input
+                                className={`sf-input ${errores.apellidos ? "sf-input--error" : ""}`}
+                                placeholder="Tus apellidos"
+                                value={form.apellidos}
+                                onChange={(e) => {
+                                    set("apellidos", e.target.value);
+                                    validarCampoOnChange("apellidos");
+                                }}
+                                onBlur={() => validarCampoOnBlur("apellidos")}
+                                disabled={submitting}
+                            />
+                        </div>
+                        {errores.apellidos && <small className="sf-field-error">{errores.apellidos}</small>}
+                    </div>
 
-            <label className="sf-label">Teléfono
-                <input
-                    type="tel"
-                    className="sf-input"
-                    value={form.numeroTelefono}
-                    onChange={(e) => set("numeroTelefono", e.target.value)}
-                    placeholder="+56 9 xxxx xxxx"
-                />
-            </label>
-            {errores.numeroTelefono && <small className="sf-error">{errores.numeroTelefono}</small>}
+                    {/* Fila 3: Correo y Teléfono */}
+                    <div className="sf-field">
+                        <label className="sf-field-label">Correo electrónico</label>
+                        <div className="sf-input-wrapper">
+                            <svg className="sf-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <input
+                                type="email"
+                                className={`sf-input ${errores.correo ? "sf-input--error" : ""}`}
+                                placeholder="tucorreo@duocuc.cl"
+                                value={form.correo}
+                                onChange={(e) => {
+                                    set("correo", e.target.value);
+                                    validarCampoOnChange("correo");
+                                }}
+                                onBlur={() => validarCampoOnBlur("correo")}
+                                disabled={submitting}
+                            />
+                        </div>
+                        {errores.correo && <small className="sf-field-error">{errores.correo}</small>}
+                    </div>
 
-            <label className="sf-label">Fecha de nacimiento
-                <input
-                    type="date"
-                    className="sf-input"
-                    value={form.fechaNacimiento}
-                    onChange={(e) => set("fechaNacimiento", e.target.value)}
-                />
-            </label>
-            {errores.fechaNacimiento && <small className="sf-error">{errores.fechaNacimiento}</small>}
+                    <div className="sf-field">
+                        <label className="sf-field-label">Teléfono</label>
+                        <div className="sf-input-wrapper">
+                            <svg className="sf-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            <input
+                                type="tel"
+                                className={`sf-input ${errores.numeroTelefono ? "sf-input--error" : ""}`}
+                                placeholder="+56 9 xxxx xxxx"
+                                value={form.numeroTelefono}
+                                onChange={(e) => {
+                                    set("numeroTelefono", e.target.value);
+                                    validarCampoOnChange("numeroTelefono");
+                                }}
+                                onBlur={() => validarCampoOnBlur("numeroTelefono")}
+                                disabled={submitting}
+                            />
+                        </div>
+                        {errores.numeroTelefono && <small className="sf-field-error">{errores.numeroTelefono}</small>}
+                    </div>
 
-            <label className="sf-label">Región
-                <select className="sf-select" value={form.regionId} onChange={(e) => set("regionId", e.target.value)}>
-                    <option value="">-- Selecciona --</option>
-                    {REGIONES.map(r => <option key={r.slug} value={r.slug}>{r.nombre}</option>)}
-                </select>
-            </label>
-            {errores.regionId && <small className="sf-error">{errores.regionId}</small>}
+                    {/* Fila 4: Fecha de nacimiento (full width) */}
+                    <div className="sf-field sf-field--full">
+                        <label className="sf-field-label">Fecha de nacimiento</label>
+                        <div className="sf-input-wrapper">
+                            <svg className="sf-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <input
+                                type="date"
+                                className={`sf-input ${errores.fechaNacimiento ? "sf-input--error" : ""}`}
+                                value={form.fechaNacimiento}
+                                onChange={(e) => {
+                                    set("fechaNacimiento", e.target.value);
+                                    validarCampoOnChange("fechaNacimiento");
+                                }}
+                                onBlur={() => validarCampoOnBlur("fechaNacimiento")}
+                                disabled={submitting}
+                            />
+                        </div>
+                        {errores.fechaNacimiento && <small className="sf-field-error">{errores.fechaNacimiento}</small>}
+                    </div>
 
-            <label className="sf-label">Comuna
-                <select
-                    className="sf-select"
-                    value={form.comunaId}
-                    onChange={(e) => set("comunaId", e.target.value)}
-                    disabled={!form.regionId}
-                >
-                    <option value="">-- Selecciona --</option>
-                    {comunasFiltradas.map(c => <option key={c.slug} value={c.slug}>{c.nombre}</option>)}
-                </select>
-            </label>
-            {errores.comunaId && <small className="sf-error">{errores.comunaId}</small>}
+                    {/* Fila 5: Región y Comuna */}
+                    <div className="sf-field">
+                        <label className="sf-field-label">Región</label>
+                        <div className="sf-input-wrapper">
+                            <svg className="sf-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <select
+                                className={`sf-input sf-select ${errores.regionId ? "sf-input--error" : ""}`}
+                                value={form.regionId}
+                                onChange={(e) => {
+                                    set("regionId", e.target.value);
+                                    validarCampoOnChange("regionId");
+                                }}
+                                onBlur={() => validarCampoOnBlur("regionId")}
+                                disabled={submitting}
+                            >
+                                <option value="">-- Selecciona --</option>
+                                {REGIONES.map((r) => (
+                                    <option key={r.slug} value={r.slug}>
+                                        {r.nombre}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        {errores.regionId && <small className="sf-field-error">{errores.regionId}</small>}
+                    </div>
 
-            <label className="sf-label">Dirección
-                <input className="sf-input" value={form.direccion} onChange={(e) => set("direccion", e.target.value)} />
-            </label>
-            {errores.direccion && <small className="sf-error">{errores.direccion}</small>}
+                    <div className="sf-field">
+                        <label className="sf-field-label">Comuna</label>
+                        <div className="sf-input-wrapper">
+                            <svg className="sf-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <select
+                                className={`sf-input sf-select ${errores.comunaId ? "sf-input--error" : ""}`}
+                                value={form.comunaId}
+                                onChange={(e) => {
+                                    set("comunaId", e.target.value);
+                                    validarCampoOnChange("comunaId");
+                                }}
+                                onBlur={() => validarCampoOnBlur("comunaId")}
+                                disabled={!form.regionId || submitting}
+                            >
+                                <option value="">-- Selecciona --</option>
+                                {comunasFiltradas.map((c) => (
+                                    <option key={c.slug} value={c.slug}>
+                                        {c.nombre}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        {errores.comunaId && <small className="sf-field-error">{errores.comunaId}</small>}
+                    </div>
 
+                    {/* Fila 6: Dirección (full width) */}
+                    <div className="sf-field sf-field--full">
+                        <label className="sf-field-label">Dirección</label>
+                        <div className="sf-input-wrapper">
+                            <svg className="sf-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                            </svg>
+                            <input
+                                className={`sf-input ${errores.direccion ? "sf-input--error" : ""}`}
+                                placeholder="Calle, número, depto..."
+                                value={form.direccion}
+                                onChange={(e) => {
+                                    set("direccion", e.target.value);
+                                    validarCampoOnChange("direccion");
+                                }}
+                                onBlur={() => validarCampoOnBlur("direccion")}
+                                disabled={submitting}
+                            />
+                        </div>
+                        {errores.direccion && <small className="sf-field-error">{errores.direccion}</small>}
+                    </div>
 
-            <label className="sf-label">Contraseña
-                <input
-                    type="password"
-                    className="sf-input"
-                    value={form.password ?? ""}
-                    onChange={(e) => set("password", e.target.value)}
-                    placeholder="4 a 10 caracteres"
-                />
-            </label>
-            {errores.contrasenia && <small className="sf-error">{errores.contrasenia}</small>}
+                    {/* Fila 7: Contraseña (full width) */}
+                    <div className="sf-field sf-field--full">
+                        <label className="sf-field-label">Contraseña</label>
+                        <div className="sf-input-wrapper">
+                            <svg className="sf-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            <input
+                                type="password"
+                                className={`sf-input ${errores.contrasenia ? "sf-input--error" : ""}`}
+                                placeholder="4 a 10 caracteres"
+                                value={form.password ?? ""}
+                                onChange={(e) => {
+                                    set("password", e.target.value);
+                                    validarCampoOnChange("password");
+                                }}
+                                onBlur={() => validarCampoOnBlur("password")}
+                                disabled={submitting}
+                            />
+                        </div>
+                        {errores.contrasenia && <small className="sf-field-error">{errores.contrasenia}</small>}
+                    </div>
 
-            <div className="actions">
-                <button type="submit" className="btn btn-accent" disabled={submitting}>
-                    {submitting ? 'Registrando...' : 'Registrarme'}
-                </button>
-            </div>
-        </form>
+                    {/* Botón de submit */}
+                    <button type="submit" className="sf-btn sf-btn--primary" disabled={submitting}>
+                        {submitting ? (
+                            <>
+                                <svg className="sf-btn-spinner" viewBox="0 0 24 24">
+                                    <circle className="sf-spinner-track" cx="12" cy="12" r="10" fill="none" strokeWidth="3" />
+                                    <circle className="sf-spinner-circle" cx="12" cy="12" r="10" fill="none" strokeWidth="3" />
+                                </svg>
+                                Registrando...
+                            </>
+                        ) : (
+                            "Registrarme"
+                        )}
+                    </button>
+                </div>
+
+                <div className="sf-auth-footer">
+                    <span className="sf-auth-footer-text">¿Ya tienes cuenta?</span>
+                    <Link to="/InicioSesion" className="sf-auth-link">Inicia sesión</Link>
+                </div>
+            </form>
+        </div>
     );
 }
