@@ -1,16 +1,23 @@
-import CuadriculaProductos from '../../components/productos/CuadriculaProductos'
+import Mision from "../../components/nosotros/Mision";
+import Vision from "../../components/nosotros/Vision";
+import QuienesSomos from "../../components/nosotros/QuienesSomos";
 
 export default function Nosotros() {
   return (
     <>
-      <header className="mb-4">
-        <div className="sf-hero rounded-3 p-4">
-          <h1 className="mb-2">Bienvenido/a a <b className="sf-brand">StoreFit</b></h1>
-          <p className="text-muted m-0">Ropa deportiva de alto rendimiento con un diseño más moderno.</p>
-        </div>
+      {/* Título tipo “pill” con degradé */}
+      <header className="mb-5">
+        <span
+          className="d-inline-block px-4 py-2 rounded-4 fw-bold"
+          style={{ background: "var(--sf-grad-acc)", color: "#fff", letterSpacing: ".5px" }}
+        >
+          NOSOTROS
+        </span>
       </header>
 
-      <CuadriculaProductos />
+      <Mision />
+      <Vision />
+      <QuienesSomos />
     </>
-  )
+  );
 }
