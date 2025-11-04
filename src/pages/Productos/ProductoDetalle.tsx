@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { PRODUCTOS } from "../../types/Producto";
+import { obtenerProductoPorId, EVENTO_PRODUCTOS } from "../../data/db";
 import { agregarAlCarrito } from "../../utils/cart";
 import { useEffect, useState } from "react";
 import { formatearCLP } from "../../utils/formatoMoneda";
@@ -10,11 +10,17 @@ export default function ProductoDetalle() {
     const { id } = useParams();
     const navigate = useNavigate();
     const pid = Number(id);
-    const p = PRODUCTOS.find(x => x.id === pid);
+  const [p, setP] = useState(() => obtenerProductoPorId(pid));
     const [qty, setQty] = useState(1);
     const [talla, setTalla] = useState<string | null>(null);
 
-    if (!p) return <div className="container py-4">Producto no encontrado.</div>;
+  useEffect(() => {
+    const recargar = () => setP(obtenerProductoPorId(pid));
+    window.addEventListener(EVENTO_PRODUCTOS, recargar as EventListener);
+    return () => window.removeEventListener(EVENTO_PRODUCTOS, recargar as EventListener);
+  }, [pid]);
+
+  if (!p) return <div className="container py-4">Producto no encontrado.</div>;
 
     const esZapatilla = /zapatill/i.test(p.categoria);
 
