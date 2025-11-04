@@ -10,6 +10,7 @@ import Contacto from "./pages/Contacto/Contacto";
 import Carrito from "./pages/Carrito/Carrito";
 import Nosotros from "./pages/Nosotros/Nosotros";
 import Blog from "./pages/Blog/Blog";
+import Pageperfil from "./pages/Perfil/Page";
 
 import { CarritoProveedor } from './context/CarritoContext'
 import { ThemeProvider } from './context/ThemeContext';
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="Productos" element={<Productos />} />
           <Route path="Registro" element={<Registro />} />
           <Route path="InicioSesion" element={<InicioSesion />} />
+          <Route path="Perfil" element={<Pageperfil/>} />
           <Route path="Contacto" element={<Contacto />} />
           <Route path="Carrito" element={<Carrito />} />
           <Route path="Nosotros" element={<Nosotros />} />

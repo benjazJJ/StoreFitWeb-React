@@ -58,6 +58,7 @@ export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) 
             <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
               <li><Link className="dropdown-item" to="/InicioSesion">Iniciar sesión</Link></li>
               <li><Link className="dropdown-item" to="/Registro">Crear cuenta</Link></li>
+              <li><Link className="dropdown-item" to="/Perfil">Ver perfil</Link></li>
             </ul>
           </div>
         </div>
