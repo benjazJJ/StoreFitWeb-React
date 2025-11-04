@@ -4,7 +4,7 @@ export default function Vision() {
       <h2 id="vision" className="ns-title">VISIÓN</h2>
 
       <div className="ns-grid ns-grid--vision">
-        {/* Texto (izquierda en desktop) */}
+        {/* Texto */}
         <div>
           <p className="ns-text">
             Buscamos ser la marca deportiva chilena líder en innovación y bienestar, reconocida en toda Latinoamérica
@@ -14,7 +14,7 @@ export default function Vision() {
           </p>
         </div>
 
-        {/* Imagen (derecha en desktop) */}
+        {/* Imagen */}
         <div>
           <img
             src="/img/TiendaStoreFit.jpeg"

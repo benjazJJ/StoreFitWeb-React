@@ -4,7 +4,7 @@ export default function QuienesSomos() {
       <h2 id="quienes" className="ns-title">QUIÉNES SOMOS</h2>
 
       <div className="ns-grid ns-grid--quienes">
-        {/* Imagen ≈33% */}
+        {/* Imagen */}
         <div>
           <img
             src="/img/HombreStoreFit.jpeg"

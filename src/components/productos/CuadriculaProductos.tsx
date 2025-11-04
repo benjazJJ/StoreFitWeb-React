@@ -11,7 +11,7 @@ export default function CuadriculaProductos({ productos }: Props) {
   const lista = useMemo<Producto[]>(() => productos ?? PRODUCTOS, [productos]);
 
   const verDetalle = (p: Producto) => {
-    // Comportamiento simple: abrir detalle (temporalmente mostramos alerta)
+    // Abre detalle
     alert(`Detalle de: ${p.nombre}`);
   };
 

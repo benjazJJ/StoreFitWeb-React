@@ -1,7 +1,7 @@
 import Mision from "../../components/nosotros/Mision";
 import Vision from "../../components/nosotros/Vision";
 import QuienesSomos from "../../components/nosotros/QuienesSomos";
-import "../../Styles/nosotros.css";
+import "../../styles/nosotros.css";
 
 export default function Nosotros() {
   return (

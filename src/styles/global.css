@@ -1,50 +1,232 @@
+/* Colores*/
 :root {
   color-scheme: light dark;
 }
 
 :root[data-theme="light"] {
+  --sf-bg: #f0f2f5;
   --sf-surface: #ffffff;
+  --sf-elev: #f5f5f5;
   --sf-text: #333333;
   --sf-muted: #666666;
   --sf-border: #dddddd;
-  --sf-elev: #f5f5f5;
   --sf-accent: #0066cc;
-  --sf-error: #dc3545;
   --sf-link: #0066cc;
-  --sf-bg: #f0f2f5;
+  --sf-error: #dc3545;
+
+  /* Brand grad */
+  --sf-grad-brand: linear-gradient(90deg, #064635 0%, #29ABE2 48%, #5d00ff 100%);
+
+  /* Navbar / dropdown */
   --sf-navbar-bg: var(--sf-surface);
   --sf-dropdown-bg: #ffffff;
   --sf-dropdown-text: #333333;
+  --sf-dropdown-hover: #f1f1f1;
+
+  /* Bootstrap overrides */
+  --bs-body-bg: var(--sf-bg);
+  --bs-body-color: var(--sf-text);
+  --bs-border-color: var(--sf-border);
+  --bs-card-bg: var(--sf-surface);
+  --bs-card-border-color: var(--sf-border);
 }
 
 :root[data-theme="dark"] {
+  --sf-bg: #1a1a1a;
   --sf-surface: #2d2d2d;
+  --sf-elev: #3d3d3d;
   --sf-text: #ffffff;
   --sf-muted: #a0a0a0;
   --sf-border: #4d4d4d;
-  --sf-elev: #3d3d3d;
   --sf-accent: #66b3ff;
-  --sf-error: #ff4d4d;
   --sf-link: #66b3ff;
-  --sf-bg: #1a1a1a;
+  --sf-error: #ff4d4d;
+
+  /* Brand grad */
+  --sf-grad-brand: linear-gradient(90deg, #3dcaac 0%, #4fc7ff 48%, #4c00fd 100%);
+
+  /* Navbar / dropdown */
   --sf-navbar-bg: #2d2d2d;
   --sf-dropdown-bg: #3d3d3d;
   --sf-dropdown-text: #ffffff;
   --sf-dropdown-hover: #4d4d4d;
+
+  /* Bootstrap overrides */
+  --bs-body-bg: var(--sf-bg);
+  --bs-body-color: var(--sf-text);
+  --bs-border-color: var(--sf-border);
+  --bs-card-bg: var(--sf-surface);
+  --bs-card-border-color: var(--sf-border);
 }
 
+/* ===========================
+   GLOBAL BASE
+   =========================== */
 body {
-  background-color: var(--sf-bg);
+  background: var(--sf-bg);
   color: var(--sf-text);
-  transition: background-color 0.3s, color 0.3s;
+  transition: background-color .3s, color .3s;
 }
 
-/* Aplicar el fondo de navbar según variable del tema */
 .navbar {
   background-color: var(--sf-navbar-bg) !important;
 }
 
-/* Estilos globales para formularios (clase .sf-form) */
+/* Links */
+.sf-link {
+  color: var(--sf-link);
+  text-decoration: none;
+  transition: opacity .2s;
+}
+
+.sf-link:hover {
+  opacity: .8;
+  text-decoration: underline;
+}
+
+/* ===========================
+   BRAND / TITLES
+   =========================== */
+/* Texto con degradé para la marca (uso general) */
+.sf-brand {
+  background: var(--sf-grad-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  display: inline-block;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+@media (hover: hover) {
+  .sf-brand:hover {
+    filter: brightness(1.05);
+  }
+}
+
+
+.sf-hero--textual .sf-brand {
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  -webkit-text-fill-color: #fff !important;
+  color: #fff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+}
+
+/* Pastilla con degradé */
+.sf-pill {
+  display: inline-block;
+  padding: .35rem .75rem;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  color: #fff;
+  background: var(--sf-grad-brand);
+}
+
+/* Etiqueta ligera (para encabezados) */
+.sf-tag {
+  display: inline-block;
+  padding: .3rem .65rem;
+  border-radius: 999px;
+  font-weight: 500;
+  letter-spacing: .2px;
+  color: var(--sf-text);
+  background: var(--sf-elev);
+  border: 1px solid var(--sf-border);
+}
+
+/* Etiqueta ligera (para encabezados) */
+.sf-tag {
+  display: inline-block;
+  padding: .3rem .65rem;
+  border-radius: 999px;
+  font-weight: 500;
+  letter-spacing: .2px;
+  color: var(--sf-text);
+  background: var(--sf-elev);
+  border: 1px solid var(--sf-border);
+}
+
+/* ===========================
+   HERO (texto solo)
+   =========================== */
+.sf-hero--textual {
+  position: relative;
+  color: #fff;
+  overflow: hidden;
+  min-height: 240px;
+  display: grid;
+  align-items: center;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, .55), rgba(0, 0, 0, .15)),
+    var(--sf-grad-brand);
+}
+
+.sf-hero--textual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, .06) 1px, transparent 1px);
+  background-size: 3px 3px;
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+
+.sf-hero-content {
+  max-width: 760px;
+}
+
+/* ===========================
+   CARDS / BOOTSTRAP SYNC
+   =========================== */
+.card {
+  background: var(--bs-card-bg);
+  color: var(--sf-text);
+  border-color: var(--bs-card-border-color);
+}
+
+/* Badges con gradiente de marca */
+.sf-badge-grad {
+  background: var(--sf-grad-brand);
+  color: #fff;
+  border: none;
+}
+
+/* ===========================
+   BRAND BLOCK / FEATURES / TILES
+   =========================== */
+.sf-brand-block {
+  background: var(--sf-surface);
+  border: 1px solid var(--sf-border);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, .25);
+  border-radius: 16px;
+}
+
+.sf-pill-feature {
+  border: 1px solid var(--sf-border);
+  background: var(--sf-elev);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+/* Tarjetas textuales sin imagen */
+.sf-tile .sf-emoji {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-size: 18px;
+  background: var(--sf-elev);
+  border: 1px solid var(--sf-border);
+}
+
+/* ===========================
+   FORMS
+   =========================== */
 .sf-form {
   max-width: 760px;
   margin: 2rem auto;
@@ -83,32 +265,20 @@ body {
   transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
 
+.sf-input::placeholder {
+  color: var(--sf-muted);
+}
+
 .sf-select option {
   background-color: var(--sf-elev);
   color: var(--sf-text);
 }
 
-/* Ajustes específicos para el tema oscuro */
-:root[data-theme="dark"] .navbar {
-  background-color: var(--sf-navbar-bg);
-}
-
-:root[data-theme="dark"] .dropdown-menu {
-  background-color: var(--sf-dropdown-bg);
-  border-color: var(--sf-border);
-}
-
-:root[data-theme="dark"] .dropdown-item {
-  color: var(--sf-dropdown-text);
-}
-
-:root[data-theme="dark"] .dropdown-item:hover {
-  background-color: var(--sf-dropdown-hover);
-  color: var(--sf-text);
-}
-
-.sf-input::placeholder {
+/* Footer */
+.sf-footer {
+  background: var(--sf-surface);
   color: var(--sf-muted);
+  border-top: 1px solid var(--sf-border);
 }
 
 .sf-input:focus,
@@ -117,7 +287,6 @@ body {
   box-shadow: 0 0 0 3px rgba(41, 171, 226, .16), 0 0 0 1px rgba(106, 61, 226, .35);
 }
 
-/* Errores y ayuda */
 .sf-error {
   color: var(--sf-error);
   font-size: .9rem;
@@ -130,7 +299,6 @@ body {
   font-size: .85rem;
 }
 
-/* Acciones */
 .sf-form .actions {
   grid-column: 1 / -1;
   display: flex;
@@ -138,28 +306,86 @@ body {
   align-items: center;
 }
 
-.btn-accent {
-  background-color: var(--sf-accent);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: opacity 0.2s;
-  font-weight: 500;
-}
-
-.btn-accent:hover {
-  opacity: 0.9;
-}
-
-/* Variante para Login  */
+/* Auth compacta */
 .sf-form--auth {
   max-width: 460px;
   padding: 26px;
   grid-template-columns: 1fr;
 }
 
+.sf-auth-extra {
+  margin-top: 1rem;
+  text-align: center;
+  color: var(--sf-muted);
+}
+
+/* Botón acento */
+.btn-accent {
+  background-color: var(--sf-accent);
+  color: #fff;
+  border: none;
+  padding: .75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity .2s;
+  font-weight: 500;
+}
+
+.btn-accent:hover {
+  opacity: .9;
+}
+
+/* ===========================
+   NAV / DROPDOWN / MISC
+   =========================== */
+.theme-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--sf-text);
+  padding: .5rem;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity .2s;
+}
+
+.theme-toggle:hover {
+  opacity: .8;
+}
+
+.dropdown-menu {
+  background-color: var(--sf-dropdown-bg);
+  border-color: var(--sf-border);
+}
+
+.dropdown-item {
+  color: var(--sf-dropdown-text);
+}
+
+.dropdown-item:hover {
+  background-color: var(--sf-dropdown-hover);
+  color: var(--sf-text);
+}
+
+/* Admin: tablas y cards respetan tema */
+.sf-admin .table > :not(caption) > * > * {
+  background-color: var(--sf-surface);
+  color: var(--sf-text);
+  border-color: var(--sf-border);
+}
+.sf-admin .table thead th {
+  border-bottom-color: var(--sf-border);
+}
+.sf-admin .card {
+  background: var(--sf-surface);
+  border-color: var(--sf-border);
+}
+
+/* ===========================
+   RESPONSIVE
+   =========================== */
 @media (max-width: 768px) {
   .sf-form {
     grid-template-columns: 1fr;
@@ -173,63 +399,52 @@ body {
   }
 }
 
-/* Enlaces y chips en auth */
-.sf-auth-extra {
-  margin-top: 1rem;
-  text-align: center;
-  color: var(--sf-muted);
-}
-
-.sf-link {
-  color: var(--sf-link);
-  text-decoration: none;
-  transition: opacity 0.2s;
-}
-
-.sf-link:hover {
-  opacity: 0.8;
-  text-decoration: underline;
-}
-
-.theme-toggle {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--sf-text);
-  padding: 0.5rem;
-  font-size: 1.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 0.2s;
-}
-
-.theme-toggle:hover {
-  opacity: 0.8;
-}
-
-/* ---------- Sección Barra navecacion ---------- */
-/* Gradiente de marca (light/dark) */
-:root[data-theme="light"] {
-  --sf-grad-brand: linear-gradient(90deg, #064635 0%, #29ABE2 48%, #5d00ff 100%);
-}
+/*Ajustes para modo oscuro */
 :root[data-theme="dark"] {
-  --sf-grad-brand: linear-gradient(90deg, #3dcaac 0%, #4fc7ff 48%, #4c00fd 100%);
+  --sf-muted: #c8cdd4;
+  --bs-secondary-color: var(--sf-muted);
+  --bs-tertiary-color: var(--sf-muted);
 }
 
-/* Texto con degradé para la marca */
-.sf-brand {
-  background: var(--sf-grad-brand);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;            /* fallback */
-  display: inline-block;         /* asegura el clip correcto */
-  font-weight: 800;              /* un poco más “marca” */
-  letter-spacing: .2px;
+.text-muted,
+.card .text-muted,
+.card-subtitle,
+.card .small,
+.sf-brand-block .text-muted,
+.sf-brand-block small,
+.sf-pill-feature .text-muted,
+.sf-pill-feature small {
+  color: var(--sf-muted) !important;
+  opacity: 1 !important;
 }
 
-/* Efecto brillo letras */
-@media (hover: hover) {
-  .sf-brand:hover { filter: brightness(1.05); }
+/* Asegura el subtítulo debajo del nombre del producto */
+.card .card-subtitle,
+.card .product-subtitle {
+  color: var(--sf-muted) !important;
 }
+
+/* Botones dentro de cards en dark*/
+:root[data-theme="dark"] .card .btn-outline-secondary {
+  color: #e7eaf0;
+  border-color: #666a70;
+}
+
+:root[data-theme="dark"] .card .btn-outline-secondary:hover {
+  background: #3d4248;
+  border-color: #7a8087;
+}
+
+:root[data-theme="dark"] .sf-pill-feature h6 {
+  color: #f2f4f7;
+}
+
+:root[data-theme="dark"] .sf-pill-feature small {
+  color: var(--sf-muted) !important;
+  opacity: 1 !important;
+}
+
+[class*="text-"] small {
+  opacity: 1 !important;
+}
+

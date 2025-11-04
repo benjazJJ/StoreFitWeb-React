@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { alertSuccess, alertError } from "../../utils/alerts";
 import { useNavigate, Link } from "react-router-dom";
 import "../../styles/Registro.css";
 import { REGIONES } from "../../data/Regiones";
@@ -29,7 +30,7 @@ const inicial: RegistroForm = {
 export default function Registro() {
     const [form, setForm] = useState<RegistroForm>(inicial);
     const [errores, setErrores] = useState<Record<string, string>>({});
-    const [submitting, setSubmitting] = useState(false);
+    const [enviando, setEnviando] = useState(false);
     const [touched, setTouched] = useState<Record<string, boolean>>({});
     const navigate = useNavigate();
 
@@ -128,34 +129,40 @@ export default function Registro() {
         return Object.keys(e).length === 0;
     }
 
-    function onSubmit(ev: React.FormEvent) {
+    const onSubmit = async (ev: React.FormEvent) => {
         ev.preventDefault();
         setErrores({});
         if (!validar()) return;
-        if (submitting) return;
+        if (enviando) return;
 
-        setSubmitting(true);
+        setEnviando(true);
         try {
             console.log("Registro - datos enviados:", form);
             const { ok, mensaje } = registrarUsuario(form);
+
             if (!ok) {
                 if (mensaje?.toLowerCase().includes("rut")) {
                     setErrores({ rut: mensaje });
                 } else {
                     setErrores({ global: mensaje ?? "No se pudo registrar" });
+                    await alertError("No se pudo registrar", mensaje ?? "Intenta nuevamente.");
                 }
                 return;
             }
+
             setErrores({});
+            await alertSuccess("¡Te has registrado exitosamente!", "Bienvenido a StoreFit Web");
             setForm(inicial);
-            navigate("/InicioSesion");
+            navigate("/InicioSesion"); // Ir a inicio de sesión
         } catch (err: any) {
             console.error("Error al registrar usuario:", err);
             setErrores({ global: "Error inesperado al registrar. Intenta nuevamente." });
+            await alertError("Error inesperado", "Intenta nuevamente.");
         } finally {
-            setSubmitting(false);
+            setEnviando(false);
         }
-    }
+    };
+
 
     return (
         <div className="sf-auth-container">
@@ -176,7 +183,7 @@ export default function Registro() {
                 )}
 
                 <div className="sf-form-body">
-                    {/* Fila 1: RUT y Nombre */}
+                    {/* RUT y Nombre */}
                     <div className="sf-field">
                         <label className="sf-field-label">RUT</label>
                         <div className="sf-input-wrapper">
@@ -194,7 +201,7 @@ export default function Registro() {
                                     validarCampoOnChange("rut");
                                 }}
                                 onBlur={() => validarCampoOnBlur("rut")}
-                                disabled={submitting}
+                                disabled={enviando}
                             />
                         </div>
                         {errores.rut && <small className="sf-field-error">{errores.rut}</small>}
@@ -216,13 +223,13 @@ export default function Registro() {
                                     validarCampoOnChange("nombre");
                                 }}
                                 onBlur={() => validarCampoOnBlur("nombre")}
-                                disabled={submitting}
+                                disabled={enviando}
                             />
                         </div>
                         {errores.nombre && <small className="sf-field-error">{errores.nombre}</small>}
                     </div>
 
-                    {/* Fila 2: Apellidos (full width) */}
+                    {/* Apellidos */}
                     <div className="sf-field sf-field--full">
                         <label className="sf-field-label">Apellidos</label>
                         <div className="sf-input-wrapper">
@@ -239,13 +246,13 @@ export default function Registro() {
                                     validarCampoOnChange("apellidos");
                                 }}
                                 onBlur={() => validarCampoOnBlur("apellidos")}
-                                disabled={submitting}
+                                disabled={enviando}
                             />
                         </div>
                         {errores.apellidos && <small className="sf-field-error">{errores.apellidos}</small>}
                     </div>
 
-                    {/* Fila 3: Correo y Teléfono */}
+                    {/* Correo y Teléfono */}
                     <div className="sf-field">
                         <label className="sf-field-label">Correo electrónico</label>
                         <div className="sf-input-wrapper">
@@ -263,7 +270,7 @@ export default function Registro() {
                                     validarCampoOnChange("correo");
                                 }}
                                 onBlur={() => validarCampoOnBlur("correo")}
-                                disabled={submitting}
+                                disabled={enviando}
                             />
                         </div>
                         {errores.correo && <small className="sf-field-error">{errores.correo}</small>}
@@ -286,13 +293,13 @@ export default function Registro() {
                                     validarCampoOnChange("numeroTelefono");
                                 }}
                                 onBlur={() => validarCampoOnBlur("numeroTelefono")}
-                                disabled={submitting}
+                                disabled={enviando}
                             />
                         </div>
                         {errores.numeroTelefono && <small className="sf-field-error">{errores.numeroTelefono}</small>}
                     </div>
 
-                    {/* Fila 4: Fecha de nacimiento (full width) */}
+                    {/* Fecha de nacimiento */}
                     <div className="sf-field sf-field--full">
                         <label className="sf-field-label">Fecha de nacimiento</label>
                         <div className="sf-input-wrapper">
@@ -309,13 +316,13 @@ export default function Registro() {
                                     validarCampoOnChange("fechaNacimiento");
                                 }}
                                 onBlur={() => validarCampoOnBlur("fechaNacimiento")}
-                                disabled={submitting}
+                                disabled={enviando}
                             />
                         </div>
                         {errores.fechaNacimiento && <small className="sf-field-error">{errores.fechaNacimiento}</small>}
                     </div>
 
-                    {/* Fila 5: Región y Comuna */}
+                    {/* Región y Comuna */}
                     <div className="sf-field">
                         <label className="sf-field-label">Región</label>
                         <div className="sf-input-wrapper">
@@ -331,7 +338,7 @@ export default function Registro() {
                                     validarCampoOnChange("regionId");
                                 }}
                                 onBlur={() => validarCampoOnBlur("regionId")}
-                                disabled={submitting}
+                                disabled={enviando}
                             >
                                 <option value="">-- Selecciona --</option>
                                 {REGIONES.map((r) => (
@@ -361,7 +368,7 @@ export default function Registro() {
                                     validarCampoOnChange("comunaId");
                                 }}
                                 onBlur={() => validarCampoOnBlur("comunaId")}
-                                disabled={!form.regionId || submitting}
+                                disabled={!form.regionId || enviando}
                             >
                                 <option value="">-- Selecciona --</option>
                                 {comunasFiltradas.map((c) => (
@@ -374,7 +381,7 @@ export default function Registro() {
                         {errores.comunaId && <small className="sf-field-error">{errores.comunaId}</small>}
                     </div>
 
-                    {/* Fila 6: Dirección (full width) */}
+                    {/* Dirección */}
                     <div className="sf-field sf-field--full">
                         <label className="sf-field-label">Dirección</label>
                         <div className="sf-input-wrapper">
@@ -391,13 +398,13 @@ export default function Registro() {
                                     validarCampoOnChange("direccion");
                                 }}
                                 onBlur={() => validarCampoOnBlur("direccion")}
-                                disabled={submitting}
+                                disabled={enviando}
                             />
                         </div>
                         {errores.direccion && <small className="sf-field-error">{errores.direccion}</small>}
                     </div>
 
-                    {/* Fila 7: Contraseña (full width) */}
+                    {/* Contraseña */}
                     <div className="sf-field sf-field--full">
                         <label className="sf-field-label">Contraseña</label>
                         <div className="sf-input-wrapper">
@@ -415,15 +422,15 @@ export default function Registro() {
                                     validarCampoOnChange("password");
                                 }}
                                 onBlur={() => validarCampoOnBlur("password")}
-                                disabled={submitting}
+                                disabled={enviando}
                             />
                         </div>
                         {errores.contrasenia && <small className="sf-field-error">{errores.contrasenia}</small>}
                     </div>
 
-                    {/* Botón de submit */}
-                    <button type="submit" className="sf-btn sf-btn--primary" disabled={submitting}>
-                        {submitting ? (
+                    {/* Enviar */}
+                    <button type="submit" className="sf-btn sf-btn--primary" disabled={enviando}>
+                        {enviando ? (
                             <>
                                 <svg className="sf-btn-spinner" viewBox="0 0 24 24">
                                     <circle className="sf-spinner-track" cx="12" cy="12" r="10" fill="none" strokeWidth="3" />

@@ -4,7 +4,7 @@ export default function Mision() {
       <h2 id="mision" className="ns-title">MISIÓN</h2>
 
       <div className="ns-grid ns-grid--mision">
-        {/* Imagen ≈33% */}
+        {/* Imagen */}
         <div>
           <img
             src="/img/tiendaStoreFit1.jpeg"

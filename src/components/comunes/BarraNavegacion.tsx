@@ -1,8 +1,27 @@
 import { Link, NavLink } from 'react-router-dom'
-import { useTheme } from '../../context/ThemeContext'
+import { useEffect, useState } from 'react'
+import { usarTema } from '../../context/ThemeContext'
+import { obtenerSesion, EVENTO_SESION, cerrarSesion } from '../../services/auth'
+import { cantidadCarrito, EVENTO_CARRITO } from '../../utils/cart'
 
 export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) => void }) {
-  const { theme, toggleTheme } = useTheme();
+  const { tema, alternarTema } = usarTema();
+  const [cantidad, setCantidad] = useState<number>(() => cantidadCarrito());
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => !!obtenerSesion()?.isAdmin);
+
+  useEffect(() => {
+    const actualizar = () => setCantidad(cantidadCarrito());
+    window.addEventListener('storage', actualizar);
+    window.addEventListener(EVENTO_CARRITO, actualizar as EventListener);
+    const actualizarSesion = () => setIsAdmin(!!obtenerSesion()?.isAdmin);
+    window.addEventListener(EVENTO_SESION, actualizarSesion as EventListener);
+    return () => {
+      window.removeEventListener('storage', actualizar);
+      window.removeEventListener(EVENTO_CARRITO, actualizar as EventListener);
+      window.removeEventListener(EVENTO_SESION, actualizarSesion as EventListener);
+    };
+  }, []);
+
   const manejarSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const q = new FormData(e.currentTarget).get('q')?.toString().trim()
@@ -10,10 +29,10 @@ export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) 
   }
 
   return (
-    <nav className={`navbar navbar-expand-lg ${theme === 'dark' ? 'navbar-dark' : 'navbar-light'}`}>
+    <nav className={`navbar navbar-expand-lg ${tema === 'dark' ? 'navbar-dark' : 'navbar-light'}`}>
       <div className="container">
         <a className="navbar-brand" href="#">
-          <span className="sf-brand">StoreFit</span> <span className="sf-brand fw-semibold">Web</span>
+          <span className="sf-brand">StoreFit</span>
         </a>
 
         <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navStoreFit">
@@ -23,9 +42,16 @@ export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) 
         <div className="collapse navbar-collapse" id="navStoreFit">
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
             <li className="nav-item"><NavLink className="nav-link" to="/">Inicio</NavLink></li>
-            <li className="nav-item"><NavLink className="nav-link" to="/Productos">Productos</NavLink></li>
+            <li className="nav-item"><NavLink className="nav-link" to="/productos">Productos</NavLink></li>
             <li className="nav-item"><NavLink className="nav-link" to="/Nosotros">Nosotros</NavLink></li>
             <li className="nav-item"><NavLink className="nav-link" to="/Contacto">Contacto</NavLink></li>
+            <li className="nav-item">
+              <NavLink className="nav-link d-flex align-items-center gap-1" to="/Carrito" aria-label="Carrito">
+                <i className="bi bi-cart"></i>
+                <span>Carrito</span>
+                {cantidad > 0 && <span className="badge bg-secondary ms-1">{cantidad}</span>}
+              </NavLink>
+            </li>
           </ul>
 
           <div className="nav-item dropdown d-flex align-items-center">
@@ -33,19 +59,19 @@ export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) 
               className="theme-toggle mx-2"
               onClick={(e) => {
                 e.preventDefault();
-                toggleTheme();
-                console.log('Tema actual:', theme);
+                alternarTema();
+                console.log('Tema actual:', tema);
               }}
               title="Cambiar tema"
             >
               <i
-                className={`bi ${theme === 'light' ? 'bi-moon-fill' : 'bi-sun-fill'}`}
-                style={{ color: theme === 'dark' ? 'white' : 'black' }}
+                className={`bi ${tema === 'light' ? 'bi-moon-fill' : 'bi-sun-fill'}`}
+                style={{ color: tema === 'dark' ? 'white' : 'black' }}
               ></i>
             </button>
             <button
               className={
-                theme === 'dark'
+                tema === 'dark'
                   ? 'btn btn-outline-light dropdown-toggle d-flex align-items-center'
                   : 'btn btn-outline-secondary dropdown-toggle d-flex align-items-center'
               }
@@ -53,12 +79,22 @@ export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) 
               data-bs-toggle="dropdown"
               aria-expanded="false"
             >
-              <i className="bi bi-person-circle" style={{ fontSize: 20, color: theme === 'dark' ? 'white' : 'black' }}></i>
+              <i className="bi bi-person-circle" style={{ fontSize: 20, color: tema === 'dark' ? 'white' : 'black' }}></i>
             </button>
             <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
-              <li><Link className="dropdown-item" to="/InicioSesion">Iniciar sesión</Link></li>
-              <li><Link className="dropdown-item" to="/Registro">Crear cuenta</Link></li>
-              <li><Link className="dropdown-item" to="/Perfil">Ver perfil</Link></li>
+              {!obtenerSesion() && <li><Link className="dropdown-item" to="/InicioSesion">Iniciar sesión</Link></li>}
+              {!obtenerSesion() && <li><Link className="dropdown-item" to="/Registro">Crear cuenta</Link></li>}
+              {obtenerSesion() && <li><Link className="dropdown-item" to="/Perfil">Ver perfil</Link></li>}
+              {obtenerSesion() && (
+                <li>
+                  <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); cerrarSesion(); }}>
+                    Cerrar sesión
+                  </a>
+                </li>
+              )}
+              {isAdmin && (
+                <li><Link className="dropdown-item" to="/Admin">Admin</Link></li>
+              )}
             </ul>
           </div>
         </div>

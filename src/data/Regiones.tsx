@@ -1,6 +1,4 @@
-// Estructura limpia de regiones de Chile con sus comunas.
-// Cada región tiene un "slug" legible y una lista de comunas con su propio slug.
-// Orden: norte → sur.
+// Regiones y comunas de Chile (norte → sur)
 
 export type Comuna = {
   slug: string;

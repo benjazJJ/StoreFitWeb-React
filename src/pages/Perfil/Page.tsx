@@ -3,33 +3,33 @@ import Perfil from "../../pages/Perfil/Perfil";
 import "../../styles/Perfil.css";
 
 export type PerfilUsuario = {
-  id: string;              // userId (correo/rut/uuid)
+  id: string;              // ID de usuario
   nombre: string;
   apellidos: string;
   rut: string;
   correo: string;
   telefono: string;
-  fechaNacimiento: string; // yyyy-mm-dd
+  fechaNacimiento: string; // Fecha (yyyy-mm-dd)
   regionId: string;
   comunaId: string;
   direccion: string;
   avatar?: string;
 };
 
-const KEY_SESSION   = "storefit_sesion";           // { userId/email/rut, token? }
-const KEY_PROFILES  = "storefit_profiles";    // { [userId]: PerfilUsuario }
+const KEY_SESSION = "storefit_sesion";           // { ID/tipo, opcional }
+const KEY_PROFILES = "storefit_profiles";    // { [userId]: PerfilUsuario }
 const REGISTRO_KEYS = ["storefit_usuarios"];
 
 function getSessionUserId(): string {
-    try {
-      const raw = localStorage.getItem(KEY_SESSION);
-      const s = raw ? JSON.parse(raw) : null;
-      return s?.userId || s?.email || s?.correo || s?.rut || "user-local";
-    } catch { 
-      return "user-local"; 
-    }
+  try {
+    const raw = localStorage.getItem(KEY_SESSION);
+    const s = raw ? JSON.parse(raw) : null;
+    return s?.userId || s?.email || s?.correo || s?.rut || "user-local";
+  } catch {
+    return "user-local";
   }
-  
+}
+
 
 function readProfiles(): Record<string, PerfilUsuario> {
   try {
@@ -84,16 +84,21 @@ export default function Page() {
     setCargando(true);
     setError(null);
 
-    // 1) busca en mapa por userId
     const map = readProfiles();
-    let p = map[userId];
+    let p: PerfilUsuario | null = map[userId] ?? null;
 
-    // 2) si no existe, intenta hidratar desde registros
-    if (!p) p = hydrateFromRegistros(userId) || null;
+    // migración user-local → userId
+    if (!p && map["user-local"]) {
+      map[userId] = { ...map["user-local"], id: userId, correo: /@/.test(userId) ? userId : (map["user-local"].correo || "") };
+      delete map["user-local"];
+      p = map[userId];
+      writeProfiles(map);
+    }
 
-    // 3) si aún no hay, crea base vacía
+    // Carga desde registros
     if (!p) {
-      p = {
+      const seeded = hydrateFromRegistros(userId); 
+      p = seeded ?? {
         id: userId,
         nombre: "",
         apellidos: "",
@@ -106,18 +111,21 @@ export default function Page() {
         direccion: "",
         avatar: "",
       };
-    } else {
-      p.id = userId;
     }
 
+    
     if (!map[userId]) {
-      map[userId] = p;
+      map[userId] = p;              
+      writeProfiles(map);
+    } else {
+      map[userId] = { ...p, id: userId };   
       writeProfiles(map);
     }
 
     setPerfil(p);
     setCargando(false);
   }, [userId]);
+
 
   async function handleSubmit(nuevo: PerfilUsuario) {
     setGuardando(true);

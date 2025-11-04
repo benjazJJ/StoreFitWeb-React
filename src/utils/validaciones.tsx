@@ -1,4 +1,4 @@
-//Validaciones generales
+// Validaciones
 
 export const EMAIL_PERMITIDO = [
   "duocuc.cl",
@@ -6,7 +6,9 @@ export const EMAIL_PERMITIDO = [
   "gmail.com",
   "yahoo.com",
   "outlook.com",
-  "hotmail.com"
+  "hotmail.com",
+  "storefit.cl",
+  "adminstorefit.cl"
 ];
 
 const limpiar = (s: string): string => s.trim().toLowerCase();
@@ -16,7 +18,7 @@ export const longitudMaxima = (v: string, n: number) => limpiar(v).length <= n;
 export const longitudMinima = (v: string, n: number) => limpiar(v).length >= n;
 
 
-//Validacion de que el correo esté dentro de los permitidos en EMAIL_PERMITIDO
+// Dominios de correo permitidos
 export function dominioCorreoValido(correo: string) {
   const m = limpiar(correo).toLowerCase().match(/@([^@]+)$/);
   if (!m) return false;
@@ -26,7 +28,7 @@ export function dominioCorreoValido(correo: string) {
   );
 }
 
-//Validamos que el rut sea chileno y con digito verificador
+// Valida RUT chileno con dígito verificador
 export function rutValido(rut: string) {
   const clean = rut.replace(/[.\-]/g, "").toUpperCase().trim();
   if (clean.length < 2) return false;
@@ -52,22 +54,22 @@ export function rutValido(rut: string) {
   return dvCalc === dv;
 }
 
-// Verifica si el RUT tiene el formato correcto (XX.XXX.XXX-X)
+// Formato RUT (XX.XXX.XXX-X)
 export function rutFormatoValido(rut: string) {
   return /^\d{1,2}(?:\.\d{3})*-[0-9Kk]$/.test(rut.trim());
 }
 
-// Dar formato a un RUT (agrega puntos y guión)
+// Formatea RUT (puntos y guión)
 export function formatearRut(rut: string): string {
-  // Limpiar el RUT de cualquier formato previo
+  // Limpia entrada
   const clean = rut.replace(/[^\dKk]/g, "");
   if (clean.length === 0) return "";
   
-  // Separar cuerpo y dígito verificador
+  // Separa cuerpo y DV
   const body = clean.slice(0, -1);
   const dv = clean.slice(-1);
   
-  // Agregar puntos al cuerpo
+  // Agrega puntos
   const formatted = body
     .split("")
     .reverse()
@@ -76,16 +78,16 @@ export function formatearRut(rut: string): string {
       return digit + acc;
     }, "");
   
-  // Si tenemos DV, agregarlo con guión
+  // Agrega DV
   return dv ? `${formatted}-${dv}` : formatted;
 }
 
-// Valida el RUT y devuelve mensaje específico según el error
+// Valida RUT con mensajes
 export function validarRut(rut: string): string | undefined {
   if (!rut || !rut.trim()) return "El RUT es obligatorio.";
   
   if (!rutFormatoValido(rut)) {
-    // Identificar qué falta en el formato
+    // Detalle de formato
     if (!rut.includes(".")) return "Falta agregar los puntos (Ej: 12.345.678-9)";
     if (!rut.includes("-")) return "Falta agregar el guión (Ej: 12.345.678-9)";
     return "Formato incorrecto. Debe ser como 12.345.678-9";
@@ -99,7 +101,7 @@ export function validarRut(rut: string): string | undefined {
 }
 
 
-//Validar contraseña y devolver mensaje específico
+// Valida contraseña
 export function validarPassword(pass: string): string | undefined {
   if (!pass || !pass.trim()) return "La contraseña es obligatoria";
   if (!longitudMinima(pass, 4)) return "Debe tener al menos 4 caracteres";
@@ -107,7 +109,7 @@ export function validarPassword(pass: string): string | undefined {
   return undefined;
 }
 
-// Validar correo y devolver mensaje específico
+// Valida correo
 export function validarCorreo(correo: string): string | undefined {
   if (!correo || !correo.trim()) return "El correo es obligatorio";
   if (!correo.includes("@")) return "Debe incluir un @";
@@ -117,11 +119,11 @@ export function validarCorreo(correo: string): string | undefined {
   return undefined;
 }
 
-// Validar teléfono (formato chileno)
+// Valida teléfono (+56)
 export function validarTelefono(tel: string): string | undefined {
   if (!tel || !tel.trim()) return "El teléfono es obligatorio";
   
-  // Limpiar el número de espacios y caracteres especiales
+  // Limpia número
   const clean = tel.replace(/[\s\-\(\)]/g, "");
   
   if (!/^\+?56\d{9}$/.test(clean)) {
@@ -133,7 +135,7 @@ export function validarTelefono(tel: string): string | undefined {
   return undefined;
 }
 
-// Validar nombre/apellido
+// Valida nombre/apellido
 export function validarNombre(nombre: string, campo = "nombre"): string | undefined {
   if (!nombre || !nombre.trim()) return `El ${campo} es obligatorio`;
   if (!longitudMaxima(nombre, 100)) return `El ${campo} es demasiado largo (máx. 100)`;
@@ -143,6 +145,6 @@ export function validarNombre(nombre: string, campo = "nombre"): string | undefi
   return undefined;
 }
 
-//Contraseña válida (para compatibilidad)
+// Alias de compatibilidad
 export const passwordValida = (v: string) =>
   longitudMinima(v, 4) && longitudMaxima(v, 10);

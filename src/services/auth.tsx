@@ -1,4 +1,4 @@
-// Servicio de "autenticación" basado en localStorage.
+// Autenticacion en localStorage
 // Guarda usuarios, permite registrar/iniciar/cerrar sesión.
 
 export type RegistroForm = {
@@ -15,7 +15,7 @@ export type RegistroForm = {
 };
 
 export type Usuario = RegistroForm & {
-    id: string;               // usamos el RUT como id
+    id: string;               // Usa RUT como ID
     createdAt: string;        
 };
 
@@ -28,10 +28,12 @@ export type Sesion = {
     correo: string;
     rut: string;
     nombre: string;
+    isAdmin?: boolean;
 };
 
 const LS_USUARIOS = "storefit_usuarios";
 const LS_SESION = "storefit_sesion";
+export const EVENTO_SESION = "storefit:session-change";
 
 const leerUsuarios = (): Usuario[] =>
     JSON.parse(localStorage.getItem(LS_USUARIOS) || "[]");
@@ -55,7 +57,6 @@ export function registrarUsuario(input: RegistroForm): { ok: boolean; mensaje?: 
     }
 
     // Asegurarnos de que el usuario registre una contraseña válida.
-    // Antes el código permitía no enviar password y el login usaba "1234" por defecto.
     if (!input.password || input.password.trim().length < 4) {
         return { ok: false, mensaje: "La contraseña es obligatoria y debe tener al menos 4 caracteres." };
     }
@@ -73,9 +74,31 @@ export function registrarUsuario(input: RegistroForm): { ok: boolean; mensaje?: 
 
 export function iniciarSesion({ correo, password }: LoginForm): { ok: boolean; mensaje?: string } {
     const usuarios = leerUsuarios();
-    const u = usuarios.find(x => x.correo.toLowerCase() === correo.toLowerCase());
+    let u: Usuario | undefined = usuarios.find(x => x.correo.toLowerCase() === correo.toLowerCase());
 
-    if (!u) return { ok: false, mensaje: "Usuario no encontrado." };
+    if (!u) {
+        if (esAdminEmail(correo) && password === ADMIN_PASSWORD) {
+            const adminUser: Usuario = {
+                id: 'ADMIN-0',
+                rut: 'ADMIN-0',
+                nombre: 'Admin',
+                apellidos: 'StoreFit',
+                correo,
+                numeroTelefono: '',
+                fechaNacimiento: '',
+                regionId: '',
+                comunaId: '',
+                direccion: '',
+                password: ADMIN_PASSWORD,
+                createdAt: new Date().toISOString(),
+            };
+            usuarios.push(adminUser);
+            escribirUsuarios(usuarios);
+            u = adminUser;
+        } else {
+            return { ok: false, mensaje: "Usuario no encontrado." };
+        }
+    }
 
     // Verificamos la contraseña: debe coincidir con la registrada.
     if (!u.password) {
@@ -86,16 +109,34 @@ export function iniciarSesion({ correo, password }: LoginForm): { ok: boolean; m
         return { ok: false, mensaje: "Contraseña incorrecta." };
     }
 
-    const sesion: Sesion = { correo: u.correo, rut: u.rut, nombre: u.nombre };
+    const sesion: Sesion = { correo: u.correo, rut: u.rut, nombre: u.nombre, isAdmin: esAdminEmail(u.correo) };
     localStorage.setItem(LS_SESION, JSON.stringify(sesion));
+    try { window.dispatchEvent(new Event(EVENTO_SESION)); } catch {}
     return { ok: true };
 }
 
 export function cerrarSesion() {
     localStorage.removeItem(LS_SESION);
+    try { window.dispatchEvent(new Event(EVENTO_SESION)); } catch {}
 }
 
 export function obtenerSesion(): Sesion | null {
     const raw = localStorage.getItem(LS_SESION);
     return raw ? (JSON.parse(raw) as Sesion) : null;
 }
+
+export function esAdminSesion(): boolean {
+    const s = obtenerSesion();
+    return !!s?.isAdmin;
+}
+const ADMIN_CUENTAS = [
+    'admin@storefit.cl',
+    'admin@adminstorefit.cl',
+];
+const ADMIN_PASSWORD = 'Admin123';
+
+function esAdminEmail(correo: string) {
+    const c = (correo || '').toLowerCase().trim();
+    return ADMIN_CUENTAS.includes(c);
+}
+

@@ -1,45 +1,45 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type Theme = 'light' | 'dark';
+type Tema = 'light' | 'dark';
 
-interface ThemeContextType {
-    theme: Theme;
-    toggleTheme: () => void;
+interface TipoContextoTema {
+    tema: Tema;
+    alternarTema: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const ContextoTema = createContext<TipoContextoTema | undefined>(undefined);
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const [theme, setTheme] = useState<Theme>(() => {
-        const savedTheme = localStorage.getItem('theme');
-        document.documentElement.setAttribute('data-theme', savedTheme || 'light');
-        return (savedTheme as Theme) || 'light';
+export function ProveedorTema({ children }: { children: React.ReactNode }) {
+    const [tema, setTema] = useState<Tema>(() => {
+        const temaGuardado = localStorage.getItem('theme');
+        document.documentElement.setAttribute('data-theme', temaGuardado || 'light');
+        return (temaGuardado as Tema) || 'light';
     });
 
     useEffect(() => {
-        localStorage.setItem('theme', theme);
-        document.documentElement.setAttribute('data-theme', theme);
-    }, [theme]);
+        localStorage.setItem('theme', tema);
+        document.documentElement.setAttribute('data-theme', tema);
+    }, [tema]);
 
-    const toggleTheme = () => {
-        setTheme(current => {
-            const newTheme = current === 'light' ? 'dark' : 'light';
-            console.log('Cambiando tema a:', newTheme);
-            return newTheme;
+    const alternarTema = () => {
+        setTema(actual => {
+            const siguiente = actual === 'light' ? 'dark' : 'light';
+            console.log('Cambiando tema a:', siguiente);
+            return siguiente;
         });
     };
 
     return (
-        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+        <ContextoTema.Provider value={{ tema, alternarTema }}>
             {children}
-        </ThemeContext.Provider>
+        </ContextoTema.Provider>
     );
 }
 
-export function useTheme() {
-    const context = useContext(ThemeContext);
-    if (context === undefined) {
-        throw new Error('useTheme must be used within a ThemeProvider');
+export function usarTema() {
+    const contexto = useContext(ContextoTema);
+    if (contexto === undefined) {
+        throw new Error('usarTema debe usarse dentro de ProveedorTema');
     }
-    return context;
+    return contexto;
 }
