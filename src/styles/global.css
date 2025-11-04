@@ -207,3 +207,29 @@ body {
 .theme-toggle:hover {
   opacity: 0.8;
 }
+
+/* ---------- Sección Barra navecacion ---------- */
+/* Gradiente de marca (light/dark) */
+:root[data-theme="light"] {
+  --sf-grad-brand: linear-gradient(90deg, #064635 0%, #29ABE2 48%, #5d00ff 100%);
+}
+:root[data-theme="dark"] {
+  --sf-grad-brand: linear-gradient(90deg, #3dcaac 0%, #4fc7ff 48%, #4c00fd 100%);
+}
+
+/* Texto con degradé para la marca */
+.sf-brand {
+  background: var(--sf-grad-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;            /* fallback */
+  display: inline-block;         /* asegura el clip correcto */
+  font-weight: 800;              /* un poco más “marca” */
+  letter-spacing: .2px;
+}
+
+/* Efecto brillo letras */
+@media (hover: hover) {
+  .sf-brand:hover { filter: brightness(1.05); }
+}

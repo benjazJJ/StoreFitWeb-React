@@ -13,7 +13,7 @@ export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) 
     <nav className={`navbar navbar-expand-lg ${theme === 'dark' ? 'navbar-dark' : 'navbar-light'}`}>
       <div className="container">
         <a className="navbar-brand" href="#">
-          <span className="sf-brand">StoreFit</span> <span className="fw-semibold">Web</span>
+          <span className="sf-brand">StoreFit</span> <span className="sf-brand fw-semibold">Web</span>
         </a>
 
         <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navStoreFit">
@@ -29,13 +29,13 @@ export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) 
           </ul>
 
           <div className="nav-item dropdown d-flex align-items-center">
-            <button 
-              className="theme-toggle mx-2" 
+            <button
+              className="theme-toggle mx-2"
               onClick={(e) => {
                 e.preventDefault();
                 toggleTheme();
-                console.log('Tema actual:', theme); 
-              }} 
+                console.log('Tema actual:', theme);
+              }}
               title="Cambiar tema"
             >
               <i
