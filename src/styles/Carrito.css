@@ -1,14 +1,14 @@
-/* Contenedor del carrito: evita scroll horizontal en móviles */
+/* Contenedor del carrito: evita scroll horizontal en moviles */
 .sf-cart {
   overflow-x: hidden;
 }
 
-/* Los ítems del carrito pueden envolver en múltiples líneas */
+/* Los items del carrito pueden envolver en multiples lineas */
 .sf-cart .list-group-item {
   gap: .75rem;
 }
 
-/* Control de cantidad: permite colapsar en móviles */
+/* Control de cantidad: permite colapsar en moviles */
 .sf-cart .qty-control {
   flex-shrink: 0;
 }

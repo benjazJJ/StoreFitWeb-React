@@ -74,6 +74,7 @@ export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) 
               {!sesion && <li><Link className="dropdown-item" to="/InicioSesion">Iniciar sesión</Link></li>}
               {!sesion && <li><Link className="dropdown-item" to="/Registro">Crear cuenta</Link></li>}
               {sesion && <li><Link className="dropdown-item" to="/Perfil">Ver perfil</Link></li>}
+              {sesion && <li><Link className="dropdown-item" to="/MisCompras">Mis compras</Link></li>}
               {sesion && (
                 <li>
                   <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); cerrarSesion(); }}>

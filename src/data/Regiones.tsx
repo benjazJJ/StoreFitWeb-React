@@ -1,4 +1,4 @@
-// Regiones y comunas de Chile (norte → sur)
+// Regiones y comunas de Chile
 
 export type Comuna = {
   slug: string;
