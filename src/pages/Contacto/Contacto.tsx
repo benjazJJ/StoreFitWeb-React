@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { validarCorreo, validarNombre, requerido, longitudMaxima } from '../../utils/validaciones'
 import { alertSuccess, alertError } from '../../utils/alerts'
+import { useAuth } from '../../context/AuthContext'
+import { useMessages } from '../../context/MessagesContext'
 
 type FormContacto = {
   nombre: string
@@ -15,7 +17,8 @@ export default function Contacto() {
   const [form, setForm] = useState<FormContacto>(inicial)
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [enviando, setEnviando] = useState(false)
-  const [mensajes, setMensajes] = useState<any[]>([]) // Estado en memoria para simular almacenamiento de contactos
+  const { sesion } = useAuth()
+  const { addMessage } = useMessages()
 
   const set = <K extends keyof FormContacto>(k: K, v: FormContacto[K]) => setForm(p => ({ ...p, [k]: v }))
 
@@ -38,8 +41,8 @@ export default function Contacto() {
     if (!validar()) return
     setEnviando(true)
     try {
-      // Agrega el mensaje al estado en memoria (useState) en lugar de LocalStorage
-      setMensajes(prev => [...prev, { ...form, fecha: new Date().toISOString() }])
+      // Envía el mensaje al contexto global en memoria (no localStorage)
+      addMessage({ nombre: form.nombre, correo: form.correo, asunto: form.asunto, mensaje: form.mensaje, userKey: sesion?.correo || sesion?.rut || undefined })
       await alertSuccess('Mensaje enviado', 'Te contactaremos pronto')
       setForm(inicial)
       setErrores({})

@@ -228,6 +228,33 @@ body {
 }
 
 /* ===========================
+   BOTONES GRADIENTE STOREFIT
+   =========================== */
+.sf-btn-grad {
+  /* Interior blanco/superficie, solo borde con degradé */
+  background: var(--sf-surface) !important;
+  color: var(--sf-text) !important;
+  border: 2px solid transparent !important;
+  border-image-slice: 1;
+  border-image-source: var(--sf-grad-brand);
+  border-radius: .375rem;
+}
+
+.sf-btn-grad:hover { filter: brightness(1.05); }
+
+.sf-btn-grad:focus-visible {
+  outline: 2px solid rgba(100, 149, 237, .4);
+  outline-offset: 2px;
+}
+
+.sf-btn-grad:active { transform: translateY(1px); }
+
+/* Variante: borde degradado verde marino -> morado oscuro */
+.sf-btn-grad--marine {
+  border-image-source: linear-gradient(90deg, #0B6B5A 0%, #3B0B8F 100%);
+}
+
+/* ===========================
    FORMS
    =========================== */
 .sf-form {
