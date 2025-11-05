@@ -5,19 +5,19 @@ import { useEffect, useState } from "react";
 import { formatearCLP } from "../../utils/formatoMoneda";
 import { alertSuccess, alertError } from "../../utils/alerts";
 import { useStock } from "../../context/StockContext";
+import { slugify } from "../../utils/slug";
 
 export default function ProductoDetalle() {
-    const { id } = useParams();
+    const { slug } = useParams();
     const navigate = useNavigate();
-    const pid = Number(id);
-  const { obtenerProductoPorId } = useProducts();        // Acceso a productos desde contexto
+  const { productos } = useProducts();                  // Lista de productos (useState)
   const { add } = useCart();                             // Acceso a carrito desde contexto
   const { stockDisponible } = useStock();                // Acceso a stock desde contexto
-  const [p, setP] = useState(() => obtenerProductoPorId(pid)); // Estado local del producto mostrado
+  const [p, setP] = useState(() => productos.find(pr => slugify(pr.nombre) === (slug || '')) ?? null); // Estado local del producto
     const [qty, setQty] = useState(1);
     const [talla, setTalla] = useState<string | null>(null);
 
-  useEffect(() => { setP(obtenerProductoPorId(pid)); }, [pid, obtenerProductoPorId]); // Relee producto si cambia id
+  useEffect(() => { setP(productos.find(pr => slugify(pr.nombre) === (slug || '')) ?? null); }, [slug, productos]); // Relee producto si cambia slug
 
   if (!p) return <div className="container py-4">Producto no encontrado.</div>;
 
@@ -67,9 +67,9 @@ export default function ProductoDetalle() {
                 <div className="col-md-6">
                     <img
                         className="img-fluid rounded shadow-sm"
-                        src={p.imagen ?? "/img/placeholder.png"}
+                        src={p.imagen ?? "/img/placeholder.svg"}
                         alt={p.nombre}
-                        onError={(e) => (e.currentTarget.src = "/img/placeholder.png")}
+                        onError={(e) => (e.currentTarget.src = "/img/placeholder.svg")}
                     />
                 </div>
 

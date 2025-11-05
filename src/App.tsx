@@ -53,7 +53,7 @@ export default function App() {
                 <Route path="/" element={<SitioLayout />}>
                   <Route index element={<Inicio />} />
                   <Route path="/productos" element={<Productos />} />
-                  <Route path="/productos/:id" element={<ProductoDetalle/>} />
+                  <Route path="/productos/:slug" element={<ProductoDetalle/>} />
                   <Route path="Checkout" element={<Checkout />} />
                   <Route path="Registro" element={<Registro />} />
                   <Route path="InicioSesion" element={<InicioSesion />} />

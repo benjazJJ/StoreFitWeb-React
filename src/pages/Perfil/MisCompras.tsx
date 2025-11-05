@@ -50,12 +50,12 @@ export default function MisCompras() {
                   {p.items.map(it => (
                     <div key={`${p.orderNumber}-${it.id}-${it.talla ?? 'U'}`} className="list-group-item d-flex align-items-center gap-3">
                       <img
-                        src={it.imagen ?? '/img/placeholder.png'}
+                        src={it.imagen ?? '/img/placeholder.svg'}
                         alt={it.nombre}
                         width={56}
                         height={56}
                         className="rounded object-fit-cover"
-                        onError={(e) => (e.currentTarget.src = '/img/placeholder.png')}
+                        onError={(e) => (e.currentTarget.src = '/img/placeholder.svg')}
                       />
                       <div className="me-auto">
                         <div className="fw-semibold">{it.nombre}</div>
