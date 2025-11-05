@@ -185,7 +185,10 @@ body {
 .card {
   background: var(--bs-card-bg);
   color: var(--sf-text);
-  border-color: var(--bs-card-border-color);
+  /* Borde con gradiente de marca (solo el borde, interior intacto) */
+  border: 2px solid transparent;
+  border-image-slice: 1;
+  border-image-source: var(--sf-grad-brand);
 }
 
 /* Badges con gradiente de marca */

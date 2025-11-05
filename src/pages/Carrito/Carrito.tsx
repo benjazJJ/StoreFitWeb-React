@@ -47,6 +47,9 @@ export default function Carrito() {
         navigate("/InicioSesion");
         return;
       }
+      // Redirige a Checkout para confirmar datos y envío
+      navigate("/Checkout");
+      return;
       await alertSuccess("Compra realizada", "¡Gracias por tu compra!");
       // Descuenta stock por ítem y talla
       for (const it of articulos) disminuirStock(it.id, (it.talla as any) ?? 'U', it.qty);

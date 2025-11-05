@@ -1,11 +1,7 @@
 import type { Producto } from "../types/Producto";
 import { PRODUCTOS } from "../types/Producto";
 
-// ATENCIÓN: Este módulo fue migrado para no usar LocalStorage.
-// La app ahora usa ProductsContext (estado con useState). Este archivo queda como
-// implementación en memoria solo para compatibilidad con llamadas antiguas.
-
-export const EVENTO_PRODUCTOS = "storefit:products-change"; // Conservado por compatibilidad (no se emite)
+export const EVENTO_PRODUCTOS = "storefit:products-change"; 
 
 // Almacenamiento en memoria (módulo) de productos
 let productosMem: Producto[] = [...PRODUCTOS]

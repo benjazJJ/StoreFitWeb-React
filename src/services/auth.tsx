@@ -1,5 +1,6 @@
 // Módulo de autenticación (compatibilidad): sin LocalStorage.
 // La aplicación usa AuthContext (useState). Mantiene un estado en memoria de referencia.
+// Modulo de autenticacion (compatibilidad)
 
 export type RegistroForm = {
   rut: string; nombre: string; apellidos: string; correo: string; numeroTelefono: string;
@@ -22,6 +23,10 @@ export function registrarUsuario(input: RegistroForm): { ok: boolean; mensaje?: 
   if (usuariosMem.some(u => u.correo.toLowerCase() === input.correo.toLowerCase())) return { ok: false, mensaje: 'El correo ya est� registrado.' }
   if (usuariosMem.some(u => u.numeroTelefono === input.numeroTelefono)) return { ok: false, mensaje: 'El n�mero de tel�fono ya est� registrado.' }
   if (!input.password || input.password.trim().length < 4) return { ok: false, mensaje: 'La contrase�a es obligatoria y debe tener al menos 4 caracteres.' }
+  if (usuariosMem.some(u => normalizarRut(u.rut) === normalizarRut(input.rut))) return { ok: false, mensaje: 'El RUT ya esta registrado.' }
+  if (usuariosMem.some(u => u.correo.toLowerCase() === input.correo.toLowerCase())) return { ok: false, mensaje: 'El correo ya esta registrado.' }
+  if (usuariosMem.some(u => u.numeroTelefono === input.numeroTelefono)) return { ok: false, mensaje: 'El numero de telefono ya esta registrado.' }
+  if (!input.password || input.password.trim().length < 4) return { ok: false, mensaje: 'La contraseña es obligatoria y debe tener al menos 4 caracteres.' }
   const nuevo: Usuario = { ...input, id: input.rut, createdAt: new Date().toISOString() }
   usuariosMem = [...usuariosMem, nuevo]
   return { ok: true }
@@ -40,6 +45,8 @@ export function iniciarSesion({ correo, password }: LoginForm): { ok: boolean; m
   }
   if (!u.password) return { ok: false, mensaje: 'El usuario no tiene una contrase�a registrada.' }
   if (password !== u.password) return { ok: false, mensaje: 'Contrase�a incorrecta.' }
+  if (!u.password) return { ok: false, mensaje: 'El usuario no tiene una contraseña registrada.' }
+  if (password !== u.password) return { ok: false, mensaje: 'Contraseña incorrecta.' }
   sesionMem = { correo: u.correo, rut: u.rut, nombre: u.nombre, isAdmin: esAdminEmail(u.correo) }
   return { ok: true }
 }
