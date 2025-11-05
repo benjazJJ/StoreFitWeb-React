@@ -19,7 +19,7 @@ export const PRODUCTOS: Producto[] = [
     nombre: 'Polera Deportiva',
     precio: 15990,
     categoria: 'Poleras',
-    imagen: 'public/img/PoleraStorefit.png',
+    imagen: '/img/PoleraStorefit.png',
     descripcion: 'Polera respirable de rápido secado, ideal para entrenamientos diarios.',
     stock: { XS: 5, S: 12, M: 20, L: 10, XL: 4 }
   },
@@ -28,7 +28,7 @@ export const PRODUCTOS: Producto[] = [
     nombre: 'Polerón Deportivo',
     precio: 24990,
     categoria: 'Polerones',
-    imagen: 'public/img/PoleronStorefit.png',
+    imagen: '/img/PoleronStorefit.png',
     descripcion: 'Polerón térmico con interior suave, perfecto para días fríos.',
     stock: { XS: 2, S: 8, M: 15, L: 7, XL: 3 }
   },
@@ -37,7 +37,7 @@ export const PRODUCTOS: Producto[] = [
     nombre: 'Buzo Deportivo',
     precio: 29990,
     categoria: 'Pantalones',
-    imagen: 'public/img/BuzosStorefit.png',
+    imagen: '/img/BuzosStoreFit.png',
     descripcion: 'Buzo ligero y resistente, con ajuste cómodo para movilidad.',
     stock: { XS: 0, S: 6, M: 12, L: 9, XL: 5 }
   },
@@ -46,7 +46,7 @@ export const PRODUCTOS: Producto[] = [
     nombre: 'Conjunto Deportivo Mujer',
     precio: 39990,
     categoria: 'Conjunto',
-    imagen: 'public/img/TopMujer.png',
+    imagen: '/img/TopMujer.png',
     descripcion: 'Conjunto de alto soporte con tela elástica y transpirable.',
     stock: { XS: 3, S: 10, M: 14, L: 6, XL: 2 }
   }

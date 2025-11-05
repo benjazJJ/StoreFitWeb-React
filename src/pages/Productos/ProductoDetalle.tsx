@@ -67,9 +67,9 @@ export default function ProductoDetalle() {
                 <div className="col-md-6">
                     <img
                         className="img-fluid rounded shadow-sm"
-                        src={p.imagen ?? "/img/placeholder.png"}
+                        src={p.imagen ?? "/img/placeholder.svg"}
                         alt={p.nombre}
-                        onError={(e) => (e.currentTarget.src = "/img/placeholder.png")}
+                        onError={(e) => (e.currentTarget.src = "/img/placeholder.svg")}
                     />
                 </div>
 

@@ -81,12 +81,12 @@ export default function Carrito() {
               {articulos.map(it => (
                 <div key={`${it.id}-${it.talla ?? 'U'}`} className="list-group-item d-flex flex-wrap gap-3 align-items-center">
                   <img
-                    src={it.imagen ?? "/img/placeholder.png"}
+                    src={it.imagen ?? "/img/placeholder.svg"}
                     alt={it.nombre}
                     width={72}
                     height={72}
                     className="rounded object-fit-cover flex-shrink-0"
-                    onError={(e) => (e.currentTarget.src = "/img/placeholder.png")}
+                    onError={(e) => (e.currentTarget.src = "/img/placeholder.svg")}
                   />
                   <div className="flex-grow-1">
                     <div className="fw-semibold">{it.nombre}</div>
