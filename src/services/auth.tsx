@@ -1,5 +1,5 @@
-// Módulo de autenticación (compatibilidad): sin LocalStorage.
-// La aplicación usa AuthContext (useState). Mantiene un estado en memoria de referencia.
+// MÃ³dulo de autenticaciÃ³n (compatibilidad): sin LocalStorage.
+// La aplicaciÃ³n usa AuthContext (useState). Mantiene un estado en memoria de referencia.
 
 export type RegistroForm = {
   rut: string; nombre: string; apellidos: string; correo: string; numeroTelefono: string;
@@ -18,10 +18,10 @@ const esAdminEmail = (c: string) => ADMIN_CUENTAS.includes((c||'').toLowerCase()
 const normalizarRut = (rut: string) => rut.replace(/[.\-]/g, '').toUpperCase()
 
 export function registrarUsuario(input: RegistroForm): { ok: boolean; mensaje?: string } {
-  if (usuariosMem.some(u => normalizarRut(u.rut) === normalizarRut(input.rut))) return { ok: false, mensaje: 'El RUT ya está registrado.' }
-  if (usuariosMem.some(u => u.correo.toLowerCase() === input.correo.toLowerCase())) return { ok: false, mensaje: 'El correo ya está registrado.' }
-  if (usuariosMem.some(u => u.numeroTelefono === input.numeroTelefono)) return { ok: false, mensaje: 'El número de teléfono ya está registrado.' }
-  if (!input.password || input.password.trim().length < 4) return { ok: false, mensaje: 'La contraseña es obligatoria y debe tener al menos 4 caracteres.' }
+  if (usuariosMem.some(u => normalizarRut(u.rut) === normalizarRut(input.rut))) return { ok: false, mensaje: 'El RUT ya estï¿½ registrado.' }
+  if (usuariosMem.some(u => u.correo.toLowerCase() === input.correo.toLowerCase())) return { ok: false, mensaje: 'El correo ya estï¿½ registrado.' }
+  if (usuariosMem.some(u => u.numeroTelefono === input.numeroTelefono)) return { ok: false, mensaje: 'El nï¿½mero de telï¿½fono ya estï¿½ registrado.' }
+  if (!input.password || input.password.trim().length < 4) return { ok: false, mensaje: 'La contraseï¿½a es obligatoria y debe tener al menos 4 caracteres.' }
   const nuevo: Usuario = { ...input, id: input.rut, createdAt: new Date().toISOString() }
   usuariosMem = [...usuariosMem, nuevo]
   return { ok: true }
@@ -38,8 +38,8 @@ export function iniciarSesion({ correo, password }: LoginForm): { ok: boolean; m
       return { ok: false, mensaje: 'Usuario no encontrado.' }
     }
   }
-  if (!u.password) return { ok: false, mensaje: 'El usuario no tiene una contraseña registrada.' }
-  if (password !== u.password) return { ok: false, mensaje: 'Contraseña incorrecta.' }
+  if (!u.password) return { ok: false, mensaje: 'El usuario no tiene una contraseï¿½a registrada.' }
+  if (password !== u.password) return { ok: false, mensaje: 'Contraseï¿½a incorrecta.' }
   sesionMem = { correo: u.correo, rut: u.rut, nombre: u.nombre, isAdmin: esAdminEmail(u.correo) }
   return { ok: true }
 }
