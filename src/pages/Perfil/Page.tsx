@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+锘縤mport { useEffect, useMemo, useState } from "react";
 import Perfil from "../../pages/Perfil/Perfil";
 import "../../styles/Perfil.css";
-import { useAuth } from "../../context/AuthContext"; // Estado de sesi髇 en memoria (useState)
+import { useAuth } from "../../context/AuthContext"; // Estado de sesi贸n en memoria (useState)
 
 export type PerfilUsuario = {
   id: string;              // ID de usuario
@@ -17,38 +17,61 @@ export type PerfilUsuario = {
   avatar?: string;
 };
 
-// Componente de p醙ina de Perfil con estado 100% en memoria usando useState
+// Componente de p谩gina de Perfil con estado 100% en memoria usando useState
 export default function Page() {
-  const { sesion } = useAuth(); // Accede a la sesi髇 actual
-  const userId = useMemo(() => (sesion?.correo || sesion?.rut || 'user-local'), [sesion]); // ID l骻ico del usuario
+  const { sesion, usuarios } = useAuth(); // Accede a la sesi贸n y usuarios registrados
+  const userId = useMemo(() => (sesion?.correo || sesion?.rut || 'user-local'), [sesion]); // ID l贸gico del usuario
   const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);          // Estado del perfil visible
   const [cargando, setCargando] = useState(true);                            // Flag de carga
   const [guardando, setGuardando] = useState(false);                         // Flag de guardado
-  const [mensaje, setMensaje] = useState<string | null>(null);               // Mensaje de 閤ito
+  const [mensaje, setMensaje] = useState<string | null>(null);               // Mensaje de 茅xito
   const [error, setError] = useState<string | null>(null);                   // Mensaje de error
   const [mapPerfiles, setMapPerfiles] = useState<Record<string, PerfilUsuario>>({}); // Mapa en memoria por usuario
+
+  // Usuario completo registrado (si existe en memoria). Se prioriza por correo y luego por RUT
+  const usuario = useMemo(() => {
+    if (!sesion) return null;
+    const byCorreo = sesion.correo ? usuarios.find(u => u.correo.toLowerCase() === sesion.correo!.toLowerCase()) : undefined;
+    if (byCorreo) return byCorreo;
+    const byRut = sesion.rut ? usuarios.find(u => u.rut && u.rut === sesion.rut) : undefined;
+    return byRut ?? null;
+  }, [sesion, usuarios]);
 
   useEffect(() => {
     setCargando(true);
     setError(null);
-    // Obtiene el perfil en memoria o inicializa uno nuevo si no existe
-    const p0: PerfilUsuario = mapPerfiles[userId] ?? {
-      id: userId,
-      nombre: "",
-      apellidos: "",
-      rut: "",
-      correo: /@/.test(userId) ? userId : "",
-      telefono: "",
-      fechaNacimiento: "",
-      regionId: "",
-      comunaId: "",
-      direccion: "",
-      avatar: "",
-    };
-    setMapPerfiles(prev => ({ ...prev, [userId]: p0 })) // Guarda/actualiza en el mapa global en memoria
-    setPerfil(p0);                                      // Actualiza el estado del perfil mostrado
-    setCargando(false);                                 // Finaliza carga
-  }, [userId]);
+    // Obtiene el perfil en memoria o inicializa usando datos del usuario registrado si existen
+    const base: PerfilUsuario = mapPerfiles[userId]
+      ?? (usuario ? {
+        id: userId,
+        nombre: usuario.nombre || "",
+        apellidos: usuario.apellidos || "",
+        rut: usuario.rut || "",
+        correo: usuario.correo || "",
+        telefono: usuario.numeroTelefono || "",
+        fechaNacimiento: usuario.fechaNacimiento || "",
+        regionId: usuario.regionId || "",
+        comunaId: usuario.comunaId || "",
+        direccion: usuario.direccion || "",
+        avatar: "",
+      } : {
+        id: userId,
+        nombre: "",
+        apellidos: "",
+        rut: "",
+        correo: /@/.test(userId) ? userId : "",
+        telefono: "",
+        fechaNacimiento: "",
+        regionId: "",
+        comunaId: "",
+        direccion: "",
+        avatar: "",
+      });
+
+    setMapPerfiles(prev => ({ ...prev, [userId]: base })); // Guarda/actualiza en el mapa global en memoria
+    setPerfil(base);                                       // Actualiza el estado del perfil mostrado
+    setCargando(false);                                    // Finaliza carga
+  }, [userId, usuario]);
 
   // Guarda cambios de perfil en el mapa en memoria
   async function handleSubmit(nuevo: PerfilUsuario) {
@@ -84,7 +107,7 @@ export default function Page() {
     <main className="perfil-page container">
       <header className="perfil-header">
         <h1 className="perfil-title">Mi Perfil</h1>
-        <p className="perfil-subtitle">Administra tu informaci髇 personal y de contacto.</p>
+        <p className="perfil-subtitle">Administra tu informaci贸n personal y de contacto.</p>
       </header>
 
       {mensaje && <div className="perfil-alert">{mensaje}</div>}
