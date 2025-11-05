@@ -15,6 +15,7 @@ export default function Contacto() {
   const [form, setForm] = useState<FormContacto>(inicial)
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [enviando, setEnviando] = useState(false)
+  const [mensajes, setMensajes] = useState<any[]>([]) // Estado en memoria para simular almacenamiento de contactos
 
   const set = <K extends keyof FormContacto>(k: K, v: FormContacto[K]) => setForm(p => ({ ...p, [k]: v }))
 
@@ -37,10 +38,8 @@ export default function Contacto() {
     if (!validar()) return
     setEnviando(true)
     try {
-      const KEY = 'storefit_contactos'
-      const lista = JSON.parse(localStorage.getItem(KEY) || '[]') as any[]
-      lista.push({ ...form, fecha: new Date().toISOString() })
-      localStorage.setItem(KEY, JSON.stringify(lista))
+      // Agrega el mensaje al estado en memoria (useState) en lugar de LocalStorage
+      setMensajes(prev => [...prev, { ...form, fecha: new Date().toISOString() }])
       await alertSuccess('Mensaje enviado', 'Te contactaremos pronto')
       setForm(inicial)
       setErrores({})

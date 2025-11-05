@@ -1,0 +1,31 @@
+/* Contenedor del carrito: evita scroll horizontal en móviles */
+.sf-cart {
+  overflow-x: hidden;
+}
+
+/* Los ítems del carrito pueden envolver en múltiples líneas */
+.sf-cart .list-group-item {
+  gap: .75rem;
+}
+
+/* Control de cantidad: permite colapsar en móviles */
+.sf-cart .qty-control {
+  flex-shrink: 0;
+}
+
+/* Panel de acciones (precio + quitar) se ajusta y no desborda */
+.sf-cart .cart-actions {
+  margin-left: auto;
+}
+
+@media (max-width: 576px) {
+  .sf-cart .qty-control {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .sf-cart .cart-actions {
+    width: 100%;
+    margin-left: 0;
+    text-align: right;
+  }
+}

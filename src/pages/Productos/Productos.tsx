@@ -2,21 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import "../../styles/Producto.css";
 import { PRODUCTOS, type Producto } from "../../types/Producto";
 import TarjetaProducto from "../../components/productos/TarjetaProducto";
-import { EVENTO_PRODUCTOS, obtenerProductos, seedProductosSiVacio } from "../../data/db";
+import { useProducts } from "../../context/ProductsContext";
 
 export default function ProductosPage() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("");
   const [datos, setDatos] = useState<Producto[]>([]);
+  const { productos } = useProducts(); // Obtiene lista de productos desde contexto (useState)
 
   useEffect(() => {
-    seedProductosSiVacio();
-    const cargar = () => setDatos(obtenerProductos());
-    cargar();
-    const h = () => cargar();
-    window.addEventListener(EVENTO_PRODUCTOS, h as EventListener);
-    return () => window.removeEventListener(EVENTO_PRODUCTOS, h as EventListener);
-  }, []);
+    setDatos(productos);
+  }, [productos]);
 
   const categorias = useMemo(
     () => Array.from(new Set(datos.map(p => p.categoria))).sort(),

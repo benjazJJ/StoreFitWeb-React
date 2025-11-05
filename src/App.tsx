@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import type React from 'react';
 import SitioLayout from "./layouts/SitioLayout";
 
 // Páginas
@@ -12,30 +13,48 @@ import Nosotros from "./pages/Nosotros/Nosotros";
 import Blog from "./pages/Blog/Blog";
 import Pageperfil from "./pages/Perfil/Page";
 import AdminProductos from "./pages/Admin/ProductosAdmin";
-import { esAdminSesion } from "./services/auth";
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { ProductsProvider } from './context/ProductsContext';
+import { StockProvider } from './context/StockContext';
+import { CartProvider } from './context/CartContext';
 
 import { ProveedorTema } from './context/ThemeContext';
 import ProductoDetalle from "./pages/Productos/ProductoDetalle";
 
+// Ruta protegida para admin usando estado global (useState en AuthContext)
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { sesion } = useAuth()
+  return sesion?.isAdmin ? <>{children}</> : <Navigate to="/InicioSesion" replace />
+}
+
 export default function App() {
   return (
-    <ProveedorTema>
-      <Routes>
-        <Route path="/" element={<SitioLayout />}>
-          <Route index element={<Inicio />} />
-          <Route path="/productos" element={<Productos />} />
-          <Route path="/productos/:id" element={<ProductoDetalle/>} />
-          <Route path="Registro" element={<Registro />} />
-          <Route path="InicioSesion" element={<InicioSesion />} />
-          <Route path="Perfil" element={<Pageperfil />} />
-          <Route path="Contacto" element={<Contacto />} />
-          <Route path="Carrito" element={<Carrito />} />
-          <Route path="Nosotros" element={<Nosotros />} />
-          <Route path="Blog" element={<Blog />} />
-          <Route path="Admin" element={esAdminSesion() ? <AdminProductos /> : <Navigate to="/InicioSesion" replace />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
-    </ProveedorTema>
+    // Proveedores de estado compartido basados en useState
+    <AuthProvider>
+      <ProductsProvider>
+        <StockProvider>
+          <CartProvider>
+            <ProveedorTema>
+              <Routes>
+                <Route path="/" element={<SitioLayout />}>
+                  <Route index element={<Inicio />} />
+                  <Route path="/productos" element={<Productos />} />
+                  <Route path="/productos/:id" element={<ProductoDetalle/>} />
+                  <Route path="Registro" element={<Registro />} />
+                  <Route path="InicioSesion" element={<InicioSesion />} />
+                  <Route path="Perfil" element={<Pageperfil />} />
+                  <Route path="Contacto" element={<Contacto />} />
+                  <Route path="Carrito" element={<Carrito />} />
+                  <Route path="Nosotros" element={<Nosotros />} />
+                  <Route path="Blog" element={<Blog />} />
+                  <Route path="Admin" element={<AdminRoute><AdminProductos /></AdminRoute>} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Route>
+              </Routes>
+            </ProveedorTema>
+          </CartProvider>
+        </StockProvider>
+      </ProductsProvider>
+    </AuthProvider>
   )
 }

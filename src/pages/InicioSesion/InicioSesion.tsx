@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../../styles/Login.css";
 import { validarCorreo, passwordValida } from "../../utils/validaciones";
-import { iniciarSesion } from "../../services/auth";
+import { useAuth } from "../../context/AuthContext";
 import { alertSuccess, alertError } from "../../utils/alerts"; // Alertas
 
 export default function InicioSesion() {
+    const { iniciarSesion } = useAuth(); // Acción de autenticación desde contexto (useState)
     const [correo, setCorreo] = useState("");
     const [contrasenia, setContrasenia] = useState("");
     const [recordar, setRecordar] = useState(false);

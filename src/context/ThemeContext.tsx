@@ -10,21 +10,18 @@ interface TipoContextoTema {
 const ContextoTema = createContext<TipoContextoTema | undefined>(undefined);
 
 export function ProveedorTema({ children }: { children: React.ReactNode }) {
-    const [tema, setTema] = useState<Tema>(() => {
-        const temaGuardado = localStorage.getItem('theme');
-        document.documentElement.setAttribute('data-theme', temaGuardado || 'light');
-        return (temaGuardado as Tema) || 'light';
-    });
+    // Estado de tema del sitio usando useState (sin LocalStorage)
+    // Se inicializa a 'light' por defecto y se sincroniza con el atributo data-theme del documento
+    const [tema, setTema] = useState<Tema>('light');
 
     useEffect(() => {
-        localStorage.setItem('theme', tema);
+        // Efecto: aplica el tema actual al atributo data-theme del <html>
         document.documentElement.setAttribute('data-theme', tema);
     }, [tema]);
 
     const alternarTema = () => {
         setTema(actual => {
             const siguiente = actual === 'light' ? 'dark' : 'light';
-            console.log('Cambiando tema a:', siguiente);
             return siguiente;
         });
     };

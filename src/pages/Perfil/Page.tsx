@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Perfil from "../../pages/Perfil/Perfil";
 import "../../styles/Perfil.css";
+import { useAuth } from "../../context/AuthContext"; // Estado de sesión en memoria (useState)
 
 export type PerfilUsuario = {
   id: string;              // ID de usuario
@@ -16,127 +17,48 @@ export type PerfilUsuario = {
   avatar?: string;
 };
 
-const KEY_SESSION = "storefit_sesion";           // { ID/tipo, opcional }
-const KEY_PROFILES = "storefit_profiles";    // { [userId]: PerfilUsuario }
-const REGISTRO_KEYS = ["storefit_usuarios"];
-
-function getSessionUserId(): string {
-  try {
-    const raw = localStorage.getItem(KEY_SESSION);
-    const s = raw ? JSON.parse(raw) : null;
-    return s?.userId || s?.email || s?.correo || s?.rut || "user-local";
-  } catch {
-    return "user-local";
-  }
-}
-
-
-function readProfiles(): Record<string, PerfilUsuario> {
-  try {
-    const raw = localStorage.getItem(KEY_PROFILES);
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
-}
-
-function writeProfiles(map: Record<string, PerfilUsuario>) {
-  localStorage.setItem(KEY_PROFILES, JSON.stringify(map));
-}
-
-
-function hydrateFromRegistros(userId: string): PerfilUsuario | null {
-  for (const key of REGISTRO_KEYS) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) continue;
-      const arr = JSON.parse(raw) as any[];
-      const found =
-        arr.find(x => (x.email || x.correo) === userId) ||
-        arr.find(x => (x.rut || "").toUpperCase() === userId.toUpperCase());
-      if (found) {
-        return {
-          id: userId,
-          nombre: found.nombre || found.name || "",
-          apellidos: found.apellidos || found.lastname || "",
-          rut: (found.rut || "").toUpperCase(),
-          correo: found.correo || found.email || userId,
-          telefono: found.numeroTelefono || found.telefono || "",
-          fechaNacimiento: found.fechaNacimiento || found.nacimiento || "",
-          regionId: String(found.regionId || ""),
-          comunaId: String(found.comunaId || ""),
-          direccion: found.direccion || "",
-          avatar: found.avatar || "",
-        };
-      }
-    } catch { /* sigue buscando */ }
-  }
-  return null;
-}
-
+// Componente de página de Perfil con estado 100% en memoria usando useState
 export default function Page() {
-  const userId = useMemo(getSessionUserId, []);
-  const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
-  const [cargando, setCargando] = useState(true);
-  const [guardando, setGuardando] = useState(false);
-  const [mensaje, setMensaje] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { sesion } = useAuth(); // Accede a la sesión actual
+  const userId = useMemo(() => (sesion?.correo || sesion?.rut || 'user-local'), [sesion]); // ID lógico del usuario
+  const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);          // Estado del perfil visible
+  const [cargando, setCargando] = useState(true);                            // Flag de carga
+  const [guardando, setGuardando] = useState(false);                         // Flag de guardado
+  const [mensaje, setMensaje] = useState<string | null>(null);               // Mensaje de éxito
+  const [error, setError] = useState<string | null>(null);                   // Mensaje de error
+  const [mapPerfiles, setMapPerfiles] = useState<Record<string, PerfilUsuario>>({}); // Mapa en memoria por usuario
 
   useEffect(() => {
     setCargando(true);
     setError(null);
-
-    const map = readProfiles();
-    let p: PerfilUsuario | null = map[userId] ?? null;
-
-    // migraciÃ³n user-local â†’ userId
-    if (!p && map["user-local"]) {
-      map[userId] = { ...map["user-local"], id: userId, correo: /@/.test(userId) ? userId : (map["user-local"].correo || "") };
-      delete map["user-local"];
-      p = map[userId];
-      writeProfiles(map);
-    }
-
-    // Carga desde registros
-    if (!p) {
-      const seeded = hydrateFromRegistros(userId); 
-      p = seeded ?? {
-        id: userId,
-        nombre: "",
-        apellidos: "",
-        rut: "",
-        correo: /@/.test(userId) ? userId : "",
-        telefono: "",
-        fechaNacimiento: "",
-        regionId: "",
-        comunaId: "",
-        direccion: "",
-        avatar: "",
-      };
-    }
-
-    
-    if (!map[userId]) {
-      map[userId] = p;              
-      writeProfiles(map);
-    } else {
-      map[userId] = { ...p, id: userId };   
-      writeProfiles(map);
-    }
-
-    setPerfil(p);
-    setCargando(false);
+    // Obtiene el perfil en memoria o inicializa uno nuevo si no existe
+    const p0: PerfilUsuario = mapPerfiles[userId] ?? {
+      id: userId,
+      nombre: "",
+      apellidos: "",
+      rut: "",
+      correo: /@/.test(userId) ? userId : "",
+      telefono: "",
+      fechaNacimiento: "",
+      regionId: "",
+      comunaId: "",
+      direccion: "",
+      avatar: "",
+    };
+    setMapPerfiles(prev => ({ ...prev, [userId]: p0 })) // Guarda/actualiza en el mapa global en memoria
+    setPerfil(p0);                                      // Actualiza el estado del perfil mostrado
+    setCargando(false);                                 // Finaliza carga
   }, [userId]);
 
-
+  // Guarda cambios de perfil en el mapa en memoria
   async function handleSubmit(nuevo: PerfilUsuario) {
     setGuardando(true);
     setMensaje(null);
     setError(null);
     try {
-      await new Promise(r => setTimeout(r, 200));
-      const map = readProfiles();
-      map[userId] = { ...nuevo, id: userId };
-      writeProfiles(map);
-      setPerfil(map[userId]);
+      await new Promise(r => setTimeout(r, 200)); // Simula I/O
+      setMapPerfiles(prev => ({ ...prev, [userId]: { ...nuevo, id: userId } })); // Escribe en memoria
+      setPerfil({ ...nuevo, id: userId });                                       // Refleja cambios en pantalla
       setMensaje("Perfil actualizado correctamente.");
     } catch {
       setError("Error al guardar localmente.");
@@ -162,7 +84,7 @@ export default function Page() {
     <main className="perfil-page container">
       <header className="perfil-header">
         <h1 className="perfil-title">Mi Perfil</h1>
-        <p className="perfil-subtitle">Administra tu informaciÃ³n personal y de contacto.</p>
+        <p className="perfil-subtitle">Administra tu información personal y de contacto.</p>
       </header>
 
       {mensaje && <div className="perfil-alert">{mensaje}</div>}
@@ -172,7 +94,7 @@ export default function Page() {
         </div>
       )}
 
-      {/* ðŸ‘‡ arranca en modo lectura (readonly) */}
+      {/* El componente arranca en modo lectura (readonly) */}
       <Perfil value={perfil} onSubmit={handleSubmit} submitting={guardando} startReadonly />
     </main>
   );

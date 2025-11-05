@@ -12,7 +12,7 @@ import {
     formatearRut,
     longitudMaxima
 } from "../../utils/validaciones";
-import { registrarUsuario, type RegistroForm } from "../../services/auth";
+import { useAuth, type RegistroForm } from "../../context/AuthContext";
 
 const inicial: RegistroForm = {
     rut: "",
@@ -28,6 +28,7 @@ const inicial: RegistroForm = {
 };
 
 export default function Registro() {
+    const { registrarUsuario } = useAuth(); // Acción de registro desde contexto (useState)
     const [form, setForm] = useState<RegistroForm>(inicial);
     const [errores, setErrores] = useState<Record<string, string>>({});
     const [enviando, setEnviando] = useState(false);

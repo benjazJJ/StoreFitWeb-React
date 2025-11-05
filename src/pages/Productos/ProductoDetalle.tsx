@@ -1,24 +1,23 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { obtenerProductoPorId, EVENTO_PRODUCTOS } from "../../data/db";
-import { agregarAlCarrito } from "../../utils/cart";
+import { useProducts } from "../../context/ProductsContext";
+import { useCart } from "../../context/CartContext";
 import { useEffect, useState } from "react";
 import { formatearCLP } from "../../utils/formatoMoneda";
 import { alertSuccess, alertError } from "../../utils/alerts";
-import { stockDisponible } from "../../utils/stock";
+import { useStock } from "../../context/StockContext";
 
 export default function ProductoDetalle() {
     const { id } = useParams();
     const navigate = useNavigate();
     const pid = Number(id);
-  const [p, setP] = useState(() => obtenerProductoPorId(pid));
+  const { obtenerProductoPorId } = useProducts();        // Acceso a productos desde contexto
+  const { add } = useCart();                             // Acceso a carrito desde contexto
+  const { stockDisponible } = useStock();                // Acceso a stock desde contexto
+  const [p, setP] = useState(() => obtenerProductoPorId(pid)); // Estado local del producto mostrado
     const [qty, setQty] = useState(1);
     const [talla, setTalla] = useState<string | null>(null);
 
-  useEffect(() => {
-    const recargar = () => setP(obtenerProductoPorId(pid));
-    window.addEventListener(EVENTO_PRODUCTOS, recargar as EventListener);
-    return () => window.removeEventListener(EVENTO_PRODUCTOS, recargar as EventListener);
-  }, [pid]);
+  useEffect(() => { setP(obtenerProductoPorId(pid)); }, [pid, obtenerProductoPorId]); // Relee producto si cambia id
 
   if (!p) return <div className="container py-4">Producto no encontrado.</div>;
 
@@ -54,9 +53,9 @@ export default function ProductoDetalle() {
                 if (!talla) { await alertError('Selecciona una talla'); return; }
                 if (disponible(talla) <= 0) { await alertError('Sin stock en esta talla'); return; }
             }
-            agregarAlCarrito(p, qty, talla ?? undefined);
+            add(p, qty, talla ?? undefined);
             await alertSuccess("Producto añadido", `${p.nombre} x${qty}${talla ? ` (${talla})` : ''}`);
-            navigate("/Carrito");
+            
         } catch {
             alertError("No se pudo añadir", "Intenta nuevamente");
         }

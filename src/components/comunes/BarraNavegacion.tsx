@@ -1,26 +1,16 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { usarTema } from '../../context/ThemeContext'
-import { obtenerSesion, EVENTO_SESION, cerrarSesion } from '../../services/auth'
-import { cantidadCarrito, EVENTO_CARRITO } from '../../utils/cart'
+import { useAuth } from '../../context/AuthContext'
+import { useCart } from '../../context/CartContext'
 
 export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) => void }) {
-  const { tema, alternarTema } = usarTema();
-  const [cantidad, setCantidad] = useState<number>(() => cantidadCarrito());
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => !!obtenerSesion()?.isAdmin);
+  const { tema, alternarTema } = usarTema();              // Estado de tema con useState
+  const { sesion, cerrarSesion } = useAuth();             // Estado de autenticación con useState
+  const { count } = useCart();                            // Estado de carrito con useState
+  const [isAdmin, setIsAdmin] = useState<boolean>(!!sesion?.isAdmin); // Flag admin derivado de sesión
 
-  useEffect(() => {
-    const actualizar = () => setCantidad(cantidadCarrito());
-    window.addEventListener('storage', actualizar);
-    window.addEventListener(EVENTO_CARRITO, actualizar as EventListener);
-    const actualizarSesion = () => setIsAdmin(!!obtenerSesion()?.isAdmin);
-    window.addEventListener(EVENTO_SESION, actualizarSesion as EventListener);
-    return () => {
-      window.removeEventListener('storage', actualizar);
-      window.removeEventListener(EVENTO_CARRITO, actualizar as EventListener);
-      window.removeEventListener(EVENTO_SESION, actualizarSesion as EventListener);
-    };
-  }, []);
+  useEffect(() => { setIsAdmin(!!sesion?.isAdmin) }, [sesion]); // Sincroniza flag cuando cambia la sesión
 
   const manejarSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -49,7 +39,7 @@ export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) 
               <NavLink className="nav-link d-flex align-items-center gap-1" to="/Carrito" aria-label="Carrito">
                 <i className="bi bi-cart"></i>
                 <span>Carrito</span>
-                {cantidad > 0 && <span className="badge bg-secondary ms-1">{cantidad}</span>}
+                {count > 0 && <span className="badge bg-secondary ms-1">{count}</span>}
               </NavLink>
             </li>
           </ul>
@@ -60,7 +50,6 @@ export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) 
               onClick={(e) => {
                 e.preventDefault();
                 alternarTema();
-                console.log('Tema actual:', tema);
               }}
               title="Cambiar tema"
             >
@@ -82,10 +71,10 @@ export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) 
               <i className="bi bi-person-circle" style={{ fontSize: 20, color: tema === 'dark' ? 'white' : 'black' }}></i>
             </button>
             <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
-              {!obtenerSesion() && <li><Link className="dropdown-item" to="/InicioSesion">Iniciar sesión</Link></li>}
-              {!obtenerSesion() && <li><Link className="dropdown-item" to="/Registro">Crear cuenta</Link></li>}
-              {obtenerSesion() && <li><Link className="dropdown-item" to="/Perfil">Ver perfil</Link></li>}
-              {obtenerSesion() && (
+              {!sesion && <li><Link className="dropdown-item" to="/InicioSesion">Iniciar sesión</Link></li>}
+              {!sesion && <li><Link className="dropdown-item" to="/Registro">Crear cuenta</Link></li>}
+              {sesion && <li><Link className="dropdown-item" to="/Perfil">Ver perfil</Link></li>}
+              {sesion && (
                 <li>
                   <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); cerrarSesion(); }}>
                     Cerrar sesión

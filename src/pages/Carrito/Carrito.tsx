@@ -1,59 +1,48 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { listaCarrito, establecerCantidadItem, quitarItem, limpiarCarrito, totalCarrito } from "../../utils/cart";
+import { useCart } from "../../context/CartContext";
 import { formatearCLP } from "../../utils/formatoMoneda";
 import { alertSuccess, alertError } from "../../utils/alerts";
-import { obtenerSesion } from "../../services/auth";
-import { stockDisponible, disminuirStock } from "../../utils/stock";
+import { useAuth } from "../../context/AuthContext";
+import { useStock } from "../../context/StockContext";
 
 export default function Carrito() {
-  const [articulos, setArticulos] = useState(() => listaCarrito());
+  const { items: articulos, setQty, remove, clear, total } = useCart(); // Estado de carrito via useState
   const navigate = useNavigate();
-  const sesionActual = obtenerSesion();
-
-  const recargar = useCallback(() => setArticulos(listaCarrito()), []);
-
-  useEffect(() => {
-    recargar();
-  }, [recargar]);
-
-  const total = useMemo(() => totalCarrito(), [articulos]);
+  const { sesion: sesionActual } = useAuth();               // Sesión actual via useState
+  const { stockDisponible, disminuirStock } = useStock();   // Stock en memoria via useState
 
   const aumentar = (id: number, talla?: string) => {
     const it = articulos.find(i => i.id === id && (i.talla ?? 'U') === (talla ?? 'U'));
     if (!it) return;
     const disp = stockDisponible(id, (it.talla as any) ?? 'U');
     if (it.qty >= disp) { alertError('Stock insuficiente'); return; }
-    establecerCantidadItem(id, Math.min(disp, it.qty + 1), (it.talla as any) ?? 'U');
-    recargar();
+    setQty(id, Math.min(disp, it.qty + 1), (it.talla as any) ?? 'U');
   };
 
   const disminuir = (id: number, talla?: string) => {
     const it = articulos.find(i => i.id === id && (i.talla ?? 'U') === (talla ?? 'U'));
     if (!it) return;
     const next = it.qty - 1;
-    if (next <= 0) quitarItem(id, (it.talla as any) ?? 'U'); else establecerCantidadItem(id, next, (it.talla as any) ?? 'U');
-    recargar();
+    if (next <= 0) remove(id, (it.talla as any) ?? 'U'); else setQty(id, next, (it.talla as any) ?? 'U');
   };
 
   const onCambioCantidad = (id: number, talla: string | undefined, v: string) => {
     const n = Math.max(0, Math.min(99, Number(v.replace(/\D/g, "")) || 0));
-    if (n <= 0) { quitarItem(id, (talla as any) ?? 'U'); recargar(); return; }
+    if (n <= 0) { remove(id, (talla as any) ?? 'U'); return; }
     const disp = stockDisponible(id, (talla as any) ?? 'U');
     const final = Math.min(n, disp);
     if (final < n) alertError('Stock insuficiente');
-    establecerCantidadItem(id, final, (talla as any) ?? 'U');
-    recargar();
+    setQty(id, final, (talla as any) ?? 'U');
   };
 
-  const onQuitar = (id: number, talla?: string) => { quitarItem(id, (talla as any) ?? 'U'); recargar(); };
-  const onVaciar = () => { limpiarCarrito(); recargar(); };
+  const onQuitar = (id: number, talla?: string) => { remove(id, (talla as any) ?? 'U'); };
+  const onVaciar = () => { clear(); };
 
   const onPagar = async () => {
     try {
       if (articulos.length === 0) return;
-      const sesion = obtenerSesion();
-      if (!sesion) {
+      if (!sesionActual) {
         await alertError("Inicia sesión", "Debes iniciar sesión para pagar");
         navigate("/InicioSesion");
         return;
@@ -61,8 +50,7 @@ export default function Carrito() {
       await alertSuccess("Compra realizada", "¡Gracias por tu compra!");
       // Descuenta stock por ítem y talla
       for (const it of articulos) disminuirStock(it.id, (it.talla as any) ?? 'U', it.qty);
-      limpiarCarrito();
-      recargar();
+      clear();
       navigate("/");
     } catch {
       alertError("No se pudo completar la compra");
@@ -70,7 +58,7 @@ export default function Carrito() {
   };
 
   return (
-    <main className="container py-4">
+    <main className="container py-4 sf-cart">
       <header className="d-flex align-items-center justify-content-between mb-4">
         <h1 className="m-0">Carrito</h1>
         {articulos.length > 0 && (
@@ -88,13 +76,13 @@ export default function Carrito() {
           <section className="col-12 col-lg-8">
             <div className="list-group">
               {articulos.map(it => (
-                <div key={`${it.id}-${it.talla ?? 'U'}`} className="list-group-item d-flex gap-3 align-items-center">
+                <div key={`${it.id}-${it.talla ?? 'U'}`} className="list-group-item d-flex flex-wrap gap-3 align-items-center">
                   <img
                     src={it.imagen ?? "/img/placeholder.png"}
                     alt={it.nombre}
                     width={72}
                     height={72}
-                    className="rounded object-fit-cover"
+                    className="rounded object-fit-cover flex-shrink-0"
                     onError={(e) => (e.currentTarget.src = "/img/placeholder.png")}
                   />
                   <div className="flex-grow-1">
@@ -103,7 +91,7 @@ export default function Carrito() {
                       {formatearCLP(it.precio)}{it.talla && it.talla !== 'U' ? ` · Talla ${it.talla}` : ''}
                     </small>
                   </div>
-                  <div className="d-inline-flex align-items-center border rounded">
+                  <div className="d-inline-flex align-items-center border rounded qty-control">
                     <button className="btn btn-light" onClick={() => disminuir(it.id, it.talla as any)} aria-label="Disminuir">−</button>
                     <input
                       className="form-control text-center"
@@ -114,7 +102,7 @@ export default function Carrito() {
                     />
                     <button className="btn btn-light" onClick={() => aumentar(it.id, it.talla as any)} aria-label="Aumentar">+</button>
                   </div>
-                  <div className="text-end" style={{ width: 120 }}>
+                  <div className="text-end cart-actions">
                     <div className="fw-semibold">{formatearCLP(it.precio * it.qty)}</div>
                     <button className="btn btn-sm btn-outline-secondary mt-1" onClick={() => onQuitar(it.id, it.talla as any)}>Quitar</button>
                   </div>

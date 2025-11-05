@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Producto, Talla } from '../../types/Producto'
-import { obtenerProductos, crearProducto, actualizarProducto, eliminarProducto, EVENTO_PRODUCTOS } from '../../data/db'
+import { useProducts } from '../../context/ProductsContext'
 import { formatearCLP } from '../../utils/formatoMoneda'
-import { stockDisponible, aumentarStock, disminuirStock } from '../../utils/stock'
+import { useStock } from '../../context/StockContext'
 import { alertConfirm, alertSuccess } from '../../utils/alerts'
 
 type Form = {
@@ -24,14 +24,11 @@ export default function ProductosAdmin() {
   const [editId, setEditId] = useState<number | null>(null)
   const [selTalla, setSelTalla] = useState<Record<number, string>>({})
   const [tick, setTick] = useState(0)
+  const { productos, crearProducto, actualizarProducto, eliminarProducto } = useProducts() // CRUD desde contexto
+  const { stockDisponible, aumentarStock, disminuirStock, inicializarStockProducto } = useStock() // Stock desde contexto
 
-  const cargar = () => setLista(obtenerProductos())
-  useEffect(() => {
-    cargar();
-    const h = () => cargar();
-    window.addEventListener(EVENTO_PRODUCTOS, h as EventListener)
-    return () => window.removeEventListener(EVENTO_PRODUCTOS, h as EventListener)
-  }, [])
+  const cargar = () => setLista(productos)
+  useEffect(() => { cargar() }, [productos])
 
   const tallasSeleccionadas = useMemo(() => (Object.keys(form.tallas).filter(k => form.tallas[k as Talla]) as Talla[]), [form.tallas])
 
@@ -42,7 +39,9 @@ export default function ProductosAdmin() {
     if (editId) {
       actualizarProducto(editId, { nombre: form.nombre, categoria: form.categoria, descripcion: form.descripcion, precio: form.precio, imagen: form.imagen, stock })
     } else {
-      crearProducto({ nombre: form.nombre, categoria: form.categoria, descripcion: form.descripcion, precio: form.precio, imagen: form.imagen, stock })
+      const creado = crearProducto({ nombre: form.nombre, categoria: form.categoria, descripcion: form.descripcion, precio: form.precio, imagen: form.imagen, stock })
+      // Inicializa stock en memoria para el nuevo producto (usa tallas seleccionadas)
+      inicializarStockProducto(creado.id, (tallasSeleccionadas.length ? (tallasSeleccionadas as unknown as string[]) : undefined))
     }
     setForm(initForm)
     setEditId(null)
