@@ -4,6 +4,8 @@ import { useProducts } from '../../context/ProductsContext'
 import { formatearCLP } from '../../utils/formatoMoneda'
 import { useStock } from '../../context/StockContext'
 import { alertConfirm, alertSuccess } from '../../utils/alerts'
+import { useReports } from '../../context/ReportsContext'
+import { Link } from 'react-router-dom'
 
 type Form = {
   nombre: string
@@ -25,7 +27,8 @@ export default function ProductosAdmin() {
   const [selTalla, setSelTalla] = useState<Record<number, string>>({})
   const [tick, setTick] = useState(0)
   const { productos, crearProducto, actualizarProducto, eliminarProducto } = useProducts() // CRUD desde contexto
-  const { stockDisponible, aumentarStock, disminuirStock, inicializarStockProducto } = useStock() // Stock desde contexto
+  const { stockDisponible, aumentarStock, disminuirStock, inicializarStockProducto, eliminarStockProducto } = useStock() // Stock desde contexto
+  const { add: addReport } = useReports()
 
   const cargar = () => setLista(productos)
   useEffect(() => { cargar() }, [productos])
@@ -37,11 +40,15 @@ export default function ProductosAdmin() {
     if (!form.nombre.trim() || !form.categoria.trim() || form.precio <= 0) return
     const stock = tallasSeleccionadas.length ? Object.fromEntries(tallasSeleccionadas.map(t => [t, 20])) : undefined
     if (editId) {
-      actualizarProducto(editId, { nombre: form.nombre, categoria: form.categoria, descripcion: form.descripcion, precio: form.precio, imagen: form.imagen, stock })
+      const updated = actualizarProducto(editId, { nombre: form.nombre, categoria: form.categoria, descripcion: form.descripcion, precio: form.precio, imagen: form.imagen, stock })
+      if (updated) {
+        addReport({ type: 'producto_actualizado', by: 'admin', producto: { id: updated.id, nombre: updated.nombre, categoria: updated.categoria, precio: updated.precio }, next: { stock: updated.stock } })
+      }
     } else {
       const creado = crearProducto({ nombre: form.nombre, categoria: form.categoria, descripcion: form.descripcion, precio: form.precio, imagen: form.imagen, stock })
       // Inicializa stock en memoria para el nuevo producto (usa tallas seleccionadas)
       inicializarStockProducto(creado.id, (tallasSeleccionadas.length ? (tallasSeleccionadas as unknown as string[]) : undefined))
+      addReport({ type: 'producto_creado', by: 'admin', producto: { id: creado.id, nombre: creado.nombre, categoria: creado.categoria, precio: creado.precio }, next: { stock: creado.stock } })
     }
     setForm(initForm)
     setEditId(null)
@@ -63,6 +70,8 @@ export default function ProductosAdmin() {
     const ok = await alertConfirm('Eliminar producto', `¿Seguro que deseas eliminar "${p.nombre}" (ID ${p.id})?`, 'Sí, eliminar', 'Cancelar')
     if (!ok) return
     eliminarProducto(p.id)
+    eliminarStockProducto(p.id)
+    addReport({ type: 'producto_eliminado', by: 'admin', producto: { id: p.id, nombre: p.nombre, categoria: p.categoria, precio: p.precio } })
     await alertSuccess('Producto eliminado')
   }
 
@@ -71,6 +80,12 @@ export default function ProductosAdmin() {
     if (esZ) return Array.from({ length: 10 }, (_, i) => String(35 + i))
     const claves = Object.keys(p.stock || {})
     return claves.length ? claves : ['U']
+  }
+
+  const totalStock = (p: Producto) => {
+    const esZ = /zapatill/i.test(p.categoria)
+    const tallas = esZ ? Array.from({ length: 10 }, (_, i) => String(35 + i)) : (Object.keys(p.stock || {}).length ? Object.keys(p.stock!) : ['U'])
+    return tallas.reduce((acc, t) => acc + stockDisponible(p.id, t), 0)
   }
 
   const seleccionTalla = (p: Producto) => selTalla[p.id] ?? tallasDe(p)[0]
@@ -84,7 +99,10 @@ export default function ProductosAdmin() {
 
   return (
     <main className="container py-4 sf-admin">
-      <h1 className="mb-3">Administrar productos</h1>
+      <div className="d-flex align-items-center justify-content-between mb-3">
+        <h1 className="m-0">Administrar productos</h1>
+        <Link to="/Admin" className="btn btn-outline-secondary btn-sm">Volver al dashboard</Link>
+      </div>
 
       <form className="card shadow-sm mb-4" onSubmit={onSubmit}>
         <div className="card-body row g-3">
@@ -164,6 +182,7 @@ export default function ProductosAdmin() {
                       </small>
                       <button className="btn btn-sm btn-outline-secondary" onClick={() => cambiarStock(p, +1)} title="+1">+</button>
                     </div>
+                    <small className="text-muted ms-2" title="Stock total">Total: {totalStock(p)}</small>
                   </div>
                 </td>
                 <td className="text-end">

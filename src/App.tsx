@@ -14,11 +14,19 @@ import Blog from "./pages/Blog/Blog";
 import Pageperfil from "./pages/Perfil/Page";
 import MisCompras from "./pages/Perfil/MisCompras";
 import AdminProductos from "./pages/Admin/ProductosAdmin";
+import UsuariosAdmin from "./pages/Admin/UsuariosAdmin";
+import PedidosAdmin from "./pages/Admin/PedidosAdmin";
+import ReportesAdmin from "./pages/Admin/ReportesAdmin";
+import AdminLayout from "./layouts/AdminLayout";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
+import MensajesAdmin from "./pages/Admin/MensajesAdmin";
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProductsProvider } from './context/ProductsContext';
 import { StockProvider } from './context/StockContext';
 import { CartProvider } from './context/CartContext';
 import { OrdersProvider } from './context/OrdersContext';
+import { ReportsProvider } from './context/ReportsContext';
+import { MessagesProvider } from './context/MessagesContext';
 
 import { ProveedorTema } from './context/ThemeContext';
 import ProductoDetalle from "./pages/Productos/ProductoDetalle";
@@ -38,6 +46,8 @@ export default function App() {
         <StockProvider>
           <CartProvider>
             <OrdersProvider>
+            <ReportsProvider>
+            <MessagesProvider>
             <ProveedorTema>
               <Routes>
                 <Route path="/" element={<SitioLayout />}>
@@ -53,11 +63,20 @@ export default function App() {
                   <Route path="Carrito" element={<Carrito />} />
                   <Route path="Nosotros" element={<Nosotros />} />
                   <Route path="Blog" element={<Blog />} />
-                  <Route path="Admin" element={<AdminRoute><AdminProductos /></AdminRoute>} />
+                  <Route path="Admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="Productos" element={<AdminProductos />} />
+                    <Route path="Usuarios" element={<UsuariosAdmin />} />
+                    <Route path="Pedidos" element={<PedidosAdmin />} />
+                    <Route path="Reportes" element={<ReportesAdmin />} />
+                    <Route path="Mensajes" element={<MensajesAdmin />} />
+                  </Route>
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Route>
               </Routes>
             </ProveedorTema>
+            </MessagesProvider>
+            </ReportsProvider>
             </OrdersProvider>
           </CartProvider>
         </StockProvider>

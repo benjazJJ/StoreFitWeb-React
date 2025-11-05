@@ -83,7 +83,7 @@ export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) 
                 </li>
               )}
               {isAdmin && (
-                <li><Link className="dropdown-item" to="/Admin">Admin</Link></li>
+                <li><Link className="dropdown-item" to="/Admin">Admin Dashboard</Link></li>
               )}
             </ul>
           </div>
