@@ -13,5 +13,7 @@
     "allowJs": false,
     "baseUrl": "."
   },
-  "include": ["src"]
+  "include": ["src"],
+  "types": ["vitest/globals"]
 }
+

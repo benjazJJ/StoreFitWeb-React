@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test":"vitest --ui"
   },
   "dependencies": {
     "animate.css": "^4.1.1",
@@ -24,9 +25,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@testing-library/react": "^16.3.0",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react-swc": "^4.1.0",
+    "@vitest/ui": "^4.0.10",
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.22",
