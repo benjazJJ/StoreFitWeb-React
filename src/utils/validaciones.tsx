@@ -8,7 +8,8 @@ export const EMAIL_PERMITIDO = [
   "outlook.com",
   "hotmail.com",
   "storefit.cl",
-  "adminstorefit.cl"
+  "adminstorefit.cl",
+  "test.com"
 ];
 
 const limpiar = (s: string): string => s.trim().toLowerCase();
@@ -101,11 +102,30 @@ export function validarRut(rut: string): string | undefined {
 }
 
 
-// Valida contraseña
+// // Valida contraseña
+// export function validarPassword(pass: string): string | undefined {
+//   if (!pass || !pass.trim()) return "La contraseña es obligatoria";
+//   if (!longitudMinima(pass, 4)) return "Debe tener al menos 4 caracteres";
+//   if (!longitudMaxima(pass, 10)) return "Debe tener máximo 10 caracteres";
+//   return undefined;
+// }
+
+// Valida contraseña para registro/login
 export function validarPassword(pass: string): string | undefined {
-  if (!pass || !pass.trim()) return "La contraseña es obligatoria";
-  if (!longitudMinima(pass, 4)) return "Debe tener al menos 4 caracteres";
-  if (!longitudMaxima(pass, 10)) return "Debe tener máximo 10 caracteres";
+  if (!pass || !pass.trim()) {
+    return "La contraseña es obligatoria";
+  }
+
+  const len = pass.trim().length;
+
+  if (len < 4) {
+    return "Debe tener al menos 4 caracteres";
+  }
+
+  if (len > 20) {
+    return "Debe tener máximo 20 caracteres";
+  }
+
   return undefined;
 }
 
@@ -147,4 +167,4 @@ export function validarNombre(nombre: string, campo = "nombre"): string | undefi
 
 // Alias de compatibilidad
 export const passwordValida = (v: string) =>
-  longitudMinima(v, 4) && longitudMaxima(v, 10);
+  longitudMinima(v, 4) && longitudMaxima(v, 20);
