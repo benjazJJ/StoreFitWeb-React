@@ -1,124 +1,177 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import Perfil from "../../pages/Perfil/Perfil";
 import "../../styles/Perfil.css";
-import { useAuth } from "../../context/AuthContext"; // Estado de sesión en memoria (useState)
+import { useAuth } from "../../context/AuthContext";
+import {
+  obtenerPerfilUsuario,
+  actualizarPerfilUsuario,
+  UsuarioPerfilResponse,
+} from "../../api/usersApi";
+
 
 export type PerfilUsuario = {
-  id: string;              // ID de usuario
+  id: string;              // ID de usuario (usamos RUT)
   nombre: string;
   apellidos: string;
   rut: string;
   correo: string;
   telefono: string;
-  fechaNacimiento: string; // Fecha (yyyy-mm-dd)
+  fechaNacimiento: string; // yyyy-mm-dd
   regionId: string;
   comunaId: string;
   direccion: string;
   avatar?: string;
 };
 
-// Componente de página de Perfil con estado 100% en memoria usando useState
+// Página de Perfil conectada al microservicio users-service
 export default function Page() {
-  const { sesion, usuarios } = useAuth(); // Accede a la sesión y usuarios registrados
-  const userId = useMemo(() => (sesion?.correo || sesion?.rut || 'user-local'), [sesion]); // ID lógico del usuario
-  const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);          // Estado del perfil visible
-  const [cargando, setCargando] = useState(true);                            // Flag de carga
-  const [guardando, setGuardando] = useState(false);                         // Flag de guardado
-  const [mensaje, setMensaje] = useState<string | null>(null);               // Mensaje de éxito
-  const [error, setError] = useState<string | null>(null);                   // Mensaje de error
-  const [mapPerfiles, setMapPerfiles] = useState<Record<string, PerfilUsuario>>({}); // Mapa en memoria por usuario
+  const { sesion } = useAuth();
 
-  // Usuario completo registrado (si existe en memoria). Se prioriza por correo y luego por RUT
-  const usuario = useMemo(() => {
-    if (!sesion) return null;
-    const byCorreo = sesion.correo ? usuarios.find(u => u.correo.toLowerCase() === sesion.correo!.toLowerCase()) : undefined;
-    if (byCorreo) return byCorreo;
-    const byRut = sesion.rut ? usuarios.find(u => u.rut && u.rut === sesion.rut) : undefined;
-    return byRut ?? null;
-  }, [sesion, usuarios]);
+  const rutSesion = useMemo(() => sesion?.rut ?? "", [sesion]);
 
+  const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // === Cargar perfil desde la BD ===
   useEffect(() => {
+    if (!sesion || !rutSesion) {
+      setCargando(false);
+      setError("No hay sesión activa.");
+      return;
+    }
+
     setCargando(true);
     setError(null);
-    // Obtiene el perfil en memoria o inicializa usando datos del usuario registrado si existen
-    const base: PerfilUsuario = mapPerfiles[userId]
-      ?? (usuario ? {
-        id: userId,
-        nombre: usuario.nombre || "",
-        apellidos: usuario.apellidos || "",
-        rut: usuario.rut || "",
-        correo: usuario.correo || "",
-        telefono: usuario.numeroTelefono || "",
-        fechaNacimiento: usuario.fechaNacimiento || "",
-        regionId: usuario.regionId || "",
-        comunaId: usuario.comunaId || "",
-        direccion: usuario.direccion || "",
-        avatar: "",
-      } : {
-        id: userId,
-        nombre: "",
-        apellidos: "",
-        rut: "",
-        correo: /@/.test(userId) ? userId : "",
-        telefono: "",
-        fechaNacimiento: "",
-        regionId: "",
-        comunaId: "",
-        direccion: "",
-        avatar: "",
-      });
+    setMensaje(null);
 
-    setMapPerfiles(prev => ({ ...prev, [userId]: base })); // Guarda/actualiza en el mapa global en memoria
-    setPerfil(base);                                       // Actualiza el estado del perfil mostrado
-    setCargando(false);                                    // Finaliza carga
-  }, [userId, usuario]);
+    obtenerPerfilUsuario(rutSesion, {
+      rut: sesion.rut,
+      rol: sesion.rolNombre,
+    })
+      .then((u: UsuarioPerfilResponse) => {
+        const perfilUi: PerfilUsuario = {
+          id: u.rut,
+          rut: u.rut,
+          nombre: u.nombre,
+          apellidos: u.apellidos,
+          correo: u.correo,
+          telefono: u.telefono ?? "",
+          fechaNacimiento: u.fechaNacimiento ?? "",
+          direccion: u.direccion ?? "",
+          // De momento región/comuna solo existen en el front
+          regionId: "",
+          comunaId: "",
+          avatar: u.fotoUri ?? "",
+        };
+        setPerfil(perfilUi);
+      })
+      .catch((e) => {
+        console.error("[Perfil] Error al cargar perfil:", e);
+        setError("No se pudo cargar tu perfil desde el servidor.");
+      })
+      .finally(() => setCargando(false));
+  }, [sesion, rutSesion]);
 
-  // Guarda cambios de perfil en el mapa en memoria
+  // === Guardar cambios en la BD ===
   async function handleSubmit(nuevo: PerfilUsuario) {
+    if (!sesion || !rutSesion) return;
     setGuardando(true);
     setMensaje(null);
     setError(null);
+
     try {
-      await new Promise(r => setTimeout(r, 200)); // Simula I/O
-      setMapPerfiles(prev => ({ ...prev, [userId]: { ...nuevo, id: userId } })); // Escribe en memoria
-      setPerfil({ ...nuevo, id: userId });                                       // Refleja cambios en pantalla
+      const actualizado = await actualizarPerfilUsuario(
+        rutSesion,
+        {
+          nombre: nuevo.nombre,
+          apellidos: nuevo.apellidos,
+          correo: nuevo.correo,
+          telefono: nuevo.telefono,
+          direccion: nuevo.direccion,
+          fechaNacimiento: nuevo.fechaNacimiento,
+          fotoUri: nuevo.avatar,
+        },
+        {
+          rut: sesion.rut,
+          rol: sesion.rolNombre,
+        }
+      );
+
+      // Refrescamos el estado con lo que devolvió la BD
+      setPerfil({
+        id: actualizado.rut,
+        rut: actualizado.rut,
+        nombre: actualizado.nombre,
+        apellidos: actualizado.apellidos,
+        correo: actualizado.correo,
+        telefono: actualizado.telefono ?? "",
+        fechaNacimiento: actualizado.fechaNacimiento ?? "",
+        direccion: actualizado.direccion ?? "",
+        regionId: nuevo.regionId,   // siguen siendo sólo del front
+        comunaId: nuevo.comunaId,
+        avatar: actualizado.fotoUri ?? nuevo.avatar,
+      });
+
       setMensaje("Perfil actualizado correctamente.");
-    } catch {
-      setError("Error al guardar localmente.");
+    } catch (e) {
+      console.error("[Perfil] Error al actualizar perfil:", e);
+      setError("No se pudo actualizar tu perfil en el servidor.");
     } finally {
       setGuardando(false);
-      setTimeout(() => setMensaje(null), 2500);
     }
   }
 
-  if (cargando || !perfil) {
+  if (cargando) {
     return (
-      <main className="perfil-page container">
-        <div className="perfil-skeleton">
-          <div className="avatar-skel" />
-          <div className="line-skel" />
-          <div className="line-skel short" />
-        </div>
+      <main className="perfil-page">
+        <h1>Mi perfil</h1>
+        <p>Cargando...</p>
+      </main>
+    );
+  }
+
+  if (!perfil) {
+    return (
+      <main className="perfil-page">
+        <h1>Mi perfil</h1>
+        <p>No se pudo cargar tu perfil.</p>
       </main>
     );
   }
 
   return (
-    <main className="perfil-page container">
+    <main className="perfil-page">
       <header className="perfil-header">
-        <h1 className="perfil-title">Mi Perfil</h1>
-        <p className="perfil-subtitle">Administra tu información personal y de contacto.</p>
+        <div>
+          <h1>Mi perfil</h1>
+          <p>Gestiona tu información personal.</p>
+        </div>
       </header>
 
       {mensaje && <div className="perfil-alert">{mensaje}</div>}
       {error && (
-        <div className="perfil-alert" style={{ borderColor: "rgba(255,92,124,.35)", background: "rgba(255,92,124,.1)" }}>
+        <div
+          className="perfil-alert"
+          style={{
+            borderColor: "rgba(255,92,124,.35)",
+            background: "rgba(255,92,124,.1)",
+          }}
+        >
           {error}
         </div>
       )}
 
-      {/* El componente arranca en modo lectura (readonly) */}
-      <Perfil value={perfil} onSubmit={handleSubmit} submitting={guardando} startReadonly />
+      {/* El componente `Perfil` maneja el formulario y validaciones,
+          y aquí le pasamos la función que realmente guarda en la BD */}
+      <Perfil
+        value={perfil}
+        onSubmit={handleSubmit}
+        submitting={guardando}
+        startReadonly
+      />
     </main>
   );
 }
