@@ -5,6 +5,20 @@ export type LoginRequest = {
   contrasenia: string;
 };
 
+// Petición de registro 
+export type RegistroRequest = {
+  rut: string;
+  nombre: string;
+  apellidos: string;
+  correo: string;
+  numeroTelefono: string;
+  fechaNacimiento: string;
+  regionId: string;
+  comunaId: string;
+  direccion: string;
+  password: string;
+};
+//Peticion de login
 export type LoginResponse = {
   success: boolean;
   usuario: string;
@@ -15,28 +29,47 @@ export type LoginResponse = {
   rolNombre: "ADMIN" | "CLIENTE" | "SOPORTE";
 };
 
-export async function loginApi(
-  req: LoginRequest
-): Promise<{ ok: boolean; data?: LoginResponse }> {
-  try {
-    const res = await fetch(`${USERS_URL}/registros/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(req),
-    });
+// Llama SIEMPRE al microservicio. Si falla, lanza error.
+export async function loginApi(req: { correo: string; contrasenia: string }) {
+  const res = await fetch(`${USERS_URL}/registros/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+  });
 
-    // Si el servidor respondió, pero con error (400, 401, 500...), lo tratamos como credenciales malas
-    if (!res.ok) {
-      return { ok: false };
-    }
-
-    const data = (await res.json()) as LoginResponse;
-    return { ok: true, data };
-  } catch (e) {
-    // Aquí recién es un problema real de conexión/red
-    console.error("Error de red al llamar loginApi:", e);
-    throw e;
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${text}`);
   }
+
+  return (await res.json()) as LoginResponse;
+}
+
+// Respuesta del backend al registrar (ajusta según tu microservicio)
+export type RegistroResponse = {
+  success: boolean;
+  mensaje?: string;
+};
+
+export async function registrarUsuarioApi(
+  payload: RegistroRequest
+): Promise<RegistroResponse> {
+  const res = await fetch(`${USERS_URL}/usuarios`, {
+    //AJUSTA esta ruta a la que realmente uses en tu users-service
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error("[registrarUsuarioApi] HTTP error", res.status, text);
+    throw new Error(`HTTP ${res.status} ${text}`);
+  }
+
+  // Si tu backend no devuelve este formato, ajusta el parseo.
+  const data = (await res.json()) as RegistroResponse;
+  return data;
 }

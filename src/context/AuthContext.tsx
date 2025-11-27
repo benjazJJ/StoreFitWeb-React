@@ -1,4 +1,3 @@
-// src/context/AuthContext.tsx
 import React, {
   createContext,
   useCallback,
@@ -8,8 +7,9 @@ import React, {
   useState,
 } from "react";
 import { loginApi, LoginResponse } from "../api/authApi";
+import { registrarUsuarioApi, RegistroRequest } from "../api/authApi";
+// ===== Tipos para formularios/entidades de autenticación =====
 
-// Tipos para formularios/entidades de autenticación
 export type RegistroForm = {
   rut: string;
   nombre: string;
@@ -30,7 +30,6 @@ export type Usuario = RegistroForm & {
 
 export type LoginForm = { correo: string; password: string };
 
-// Sesión ahora incluye el rol que viene del backend
 export type Sesion = {
   correo: string;
   rut: string;
@@ -39,159 +38,123 @@ export type Sesion = {
   isAdmin: boolean;
 };
 
-// Cuentas administrativas válidas y clave (puedes mantenerlas o quitarlas luego)
-const ADMIN_CUENTAS = ["admin@storefit.cl", "admin@adminstorefit.cl"];
-const ADMIN_PASSWORD = "Admin123";
+// ===== Forma del contexto expuesto a la app =====
 
-const SESION_KEY = "storefit_sesion";
-
-// Utilidad: normaliza un RUT para comparaciones
-const normalizarRut = (rut: string) =>
-  rut.replace(/[.\-]/g, "").toUpperCase();
-
-// Forma del contexto expuesto a la app
 type AuthContextType = {
-  usuarios: Usuario[]; // Lista en memoria de usuarios registrados
-  sesion: Sesion | null; // Sesión activa (o null si no hay)
-  registrarUsuario: (input: RegistroForm) => { ok: boolean; mensaje?: string };
+  usuarios: Usuario[];
+  sesion: Sesion | null;
+  registrarUsuario: (
+    input: RegistroForm
+  ) => Promise<{ ok: boolean; mensaje?: string }>;
   iniciarSesion: (
     input: LoginForm
   ) => Promise<{ ok: boolean; mensaje?: string }>;
   cerrarSesion: () => void;
 };
 
-// Contexto real
+
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Proveedor de autenticación
+const SESION_KEY = "storefit_sesion";
+
+// ===== Proveedor de autenticación =====
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Estado: usuarios registrados (en memoria)
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  // Estado: sesión actual
-  const [sesion, setSesion] = useState<Sesion | null>(null);
+  
 
-  // Cargar sesión desde localStorage al montar
-  useEffect(() => {
-    const raw = localStorage.getItem(SESION_KEY);
-    if (raw) {
-      try {
-        const s = JSON.parse(raw) as Sesion;
-        setSesion(s);
-      } catch {
-        localStorage.removeItem(SESION_KEY);
-      }
-    }
-  }, []);
-
-  // Acción: registra un nuevo usuario en la lista en memoria (por ahora local)
   const registrarUsuario = useCallback(
-    (input: RegistroForm) => {
-      // Validaciones de duplicados
-      if (
-        usuarios.some(
-          (u) => normalizarRut(u.rut) === normalizarRut(input.rut)
-        )
-      ) {
-        return { ok: false, mensaje: "El RUT ya está registrado." };
-      }
-      if (
-        usuarios.some(
-          (u) => u.correo.toLowerCase() === input.correo.toLowerCase()
-        )
-      ) {
-        return { ok: false, mensaje: "El correo ya está registrado." };
-      }
-      if (
-        usuarios.some((u) => u.numeroTelefono === input.numeroTelefono)
-      ) {
+    async (input: RegistroForm): Promise<{ ok: boolean; mensaje?: string }> => {
+      try {
+        // (Opcional) validaciones básicas en el front
+        if (!input.rut || !input.correo || !input.password) {
+          return {
+            ok: false,
+            mensaje: "RUT, correo y contraseña son obligatorios.",
+          };
+        }
+
+        // Llama SIEMPRE al microservicio
+        const resp = await registrarUsuarioApi({
+          rut: input.rut,
+          nombre: input.nombre,
+          apellidos: input.apellidos,
+          correo: input.correo,
+          numeroTelefono: input.numeroTelefono,
+          fechaNacimiento: input.fechaNacimiento,
+          regionId: input.regionId,
+          comunaId: input.comunaId,
+          direccion: input.direccion,
+          password: input.password,
+        } as RegistroRequest);
+
+        if (!resp.success) {
+          return {
+            ok: false,
+            mensaje: resp.mensaje ?? "No se pudo registrar el usuario.",
+          };
+        }
+
+        // (Opcional) podrías añadirlo a `usuarios` solo como cache local,
+        // pero la "verdad oficial" ya está en la BD del microservicio.
+        // setUsuarios(prev => [...prev, { ...input, id: input.rut, createdAt: new Date().toISOString() }]);
+
+        return { ok: true };
+      } catch (e) {
+        console.error(
+          "[AuthContext] Error conectando con users-service (registro):",
+          e
+        );
         return {
           ok: false,
-          mensaje: "El número de teléfono ya está registrado.",
+          mensaje: "No se pudo contactar con el servicio de usuarios.",
         };
       }
-      if (!input.password || input.password.trim().length < 4) {
-        return {
-          ok: false,
-          mensaje:
-            "La contraseña es obligatoria y debe tener al menos 4 caracteres.",
-        };
-      }
-      // Crea y agrega el usuario
-      const nuevo: Usuario = {
-        ...input,
-        id: input.rut,
-        createdAt: new Date().toISOString(),
-      };
-      setUsuarios((prev) => [...prev, nuevo]);
-      return { ok: true };
     },
-    [usuarios]
+    []
   );
 
-  // Acción: inicia sesión contra el microservicio de usuarios
-  const iniciarSesion = useCallback(
-  async ({ correo, password }: LoginForm) => {
+  // -------- Inicio de sesión SOLO contra microservicio --------
+  const iniciarSesion = useCallback(async ({ correo, password }: LoginForm) => {
     try {
-      const resp = await loginApi({
+      // Llama SIEMPRE al users-service
+      const resp: LoginResponse = await loginApi({
         correo,
         contrasenia: password,
       });
 
-      // Si el servidor respondió con 4xx/5xx o success=false
-      if (!resp.ok || !resp.data || !resp.data.success) {
+      if (!resp.success) {
         return {
           ok: false,
           mensaje: "Correo o contraseña incorrectos.",
         };
       }
 
-      const data = resp.data;
-
       const nuevaSesion: Sesion = {
-        correo: data.correo,
-        rut: data.rut,
-        nombre: data.nombre,
-        rolNombre: data.rolNombre,
-        isAdmin: data.rolNombre === "ADMIN",
+        correo: resp.correo,
+        rut: resp.rut,
+        nombre: resp.nombre,
+        rolNombre: resp.rolNombre,
+        isAdmin: resp.rolNombre === "ADMIN",
       };
 
-      setSesion(nuevaSesion);
-      localStorage.setItem(SESION_KEY, JSON.stringify(nuevaSesion));
+      
 
       return { ok: true };
     } catch (e) {
-      console.error("Error REAL de conexión con auth-service:", e);
+      console.error("Error conectando con users-service:", e);
       return {
         ok: false,
         mensaje: "No se pudo conectar con el servidor de autenticación.",
       };
     }
-  },
-  []
-);
-
-
-  // Acción: cierra la sesión limpiando el estado y el localStorage
-  const cerrarSesion = useCallback(() => {
-    setSesion(null);
-    localStorage.removeItem(SESION_KEY);
   }, []);
 
-  // Valor memorizado del contexto
-  const value = useMemo<AuthContextType>(
-    () => ({
-      usuarios,
-      sesion,
-      registrarUsuario,
-      iniciarSesion,
-      cerrarSesion,
-    }),
-    [usuarios, sesion, registrarUsuario, iniciarSesion, cerrarSesion]
-  );
+  
 
-  return (
-    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-  );
+  
+
+  
 }
 
 // Hook de consumo del contexto de autenticación

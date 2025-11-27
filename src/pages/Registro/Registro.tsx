@@ -137,31 +137,21 @@ export default function Registro() {
         if (enviando) return;
 
         setEnviando(true);
-        try {
-            console.log("Registro - datos enviados:", form);
-            const { ok, mensaje } = registrarUsuario(form);
+  try {
+    const { ok, mensaje } = await registrarUsuario(formState);
 
-            if (!ok) {
-                if (mensaje?.toLowerCase().includes("rut")) {
-                    setErrores({ rut: mensaje });
-                } else {
-                    setErrores({ global: mensaje ?? "No se pudo registrar" });
-                    await alertError("No se pudo registrar", mensaje ?? "Intenta nuevamente.");
-                }
-                return;
-            }
+    if (!ok) {
+      // mostrar mensajes de error en el formulario
+      alertError("No se pudo registrar", mensaje ?? "Intenta nuevamente.");
+      return;
+    }
 
-            setErrores({});
-            await alertSuccess("¡Te has registrado exitosamente!", "Bienvenido a StoreFit Web");
-            setForm(inicial);
-            navigate("/InicioSesion"); // Ir a inicio de sesión
-        } catch (err: any) {
-            console.error("Error al registrar usuario:", err);
-            setErrores({ global: "Error inesperado al registrar. Intenta nuevamente." });
-            await alertError("Error inesperado", "Intenta nuevamente.");
-        } finally {
-            setEnviando(false);
-        }
+    await alertSuccess("Usuario registrado correctamente");
+    // redirigir a login o donde quieras
+  } finally {
+    setEnviando(false);
+  }
+};
     };
 
 
@@ -193,9 +183,9 @@ export default function Registro() {
                                     d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
                             </svg>
                             <input
-                                className={`sf-input ${errores.rut ? "sf-input--error" : ""}`}
+                                className={`sf-input ${Error.rut ? "sf-input--error" : ""}`}
                                 placeholder="12.345.678-9"
-                                value={form.rut}
+                                value={formatearRut.rut}
                                 onChange={(e) => {
                                     const formateado = formatearRut(e.target.value);
                                     set("rut", formateado);
@@ -205,7 +195,7 @@ export default function Registro() {
                                 disabled={enviando}
                             />
                         </div>
-                        {errores.rut && <small className="sf-field-error">{errores.rut}</small>}
+                        {errores.rut && <small className="sf-field-error">{Error.rut}</small>}
                     </div>
 
                     <div className="sf-field">
