@@ -18,7 +18,7 @@ export default function InicioSesion() {
     const validarCampo = (campo: "correo" | "contrasenia"): string | undefined => {
         if (campo === "correo") return validarCorreo(correo);
         if (campo === "contrasenia")
-            return passwordValida(contrasenia) ? "Contraseña entre 4 y 10 caracteres" : undefined;
+            return !passwordValida(contrasenia) ? "Contraseña entre 4 y 20 caracteres": undefined;
         return undefined;
     };
 
