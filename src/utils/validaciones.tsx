@@ -8,7 +8,8 @@ export const EMAIL_PERMITIDO = [
   "outlook.com",
   "hotmail.com",
   "storefit.cl",
-  "adminstorefit.cl"
+  "adminstorefit.cl",
+  "test.com"
 ];
 
 const limpiar = (s: string): string => s.trim().toLowerCase();
