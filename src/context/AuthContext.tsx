@@ -2,12 +2,12 @@ import React, {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from "react";
 import { loginApi, LoginResponse } from "../api/authApi";
 import { registrarUsuarioApi, RegistroRequest } from "../api/authApi";
+
 // ===== Tipos para formularios/entidades de autenticación =====
 
 export type RegistroForm = {
@@ -52,21 +52,21 @@ type AuthContextType = {
   cerrarSesion: () => void;
 };
 
-
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const SESION_KEY = "storefit_sesion";
 
 // ===== Proveedor de autenticación =====
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  
+  // Lista de usuarios en memoria (si la usas en algún admin local)
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  // Sesión actual (solo en memoria)
+  const [sesion, setSesion] = useState<Sesion | null>(null);
 
+  // -------- Registro SOLO contra microservicio --------
   const registrarUsuario = useCallback(
     async (input: RegistroForm): Promise<{ ok: boolean; mensaje?: string }> => {
       try {
-        // (Opcional) validaciones básicas en el front
+        // Validaciones básicas en el front
         if (!input.rut || !input.correo || !input.password) {
           return {
             ok: false,
@@ -82,8 +82,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           correo: input.correo,
           numeroTelefono: input.numeroTelefono,
           fechaNacimiento: input.fechaNacimiento,
-          regionId: input.regionId,
-          comunaId: input.comunaId,
           direccion: input.direccion,
           password: input.password,
         } as RegistroRequest);
@@ -95,9 +93,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
         }
 
-        // (Opcional) podrías añadirlo a `usuarios` solo como cache local,
-        // pero la "verdad oficial" ya está en la BD del microservicio.
-        // setUsuarios(prev => [...prev, { ...input, id: input.rut, createdAt: new Date().toISOString() }]);
+        // Si quieres, puedes cachear en memoria:
+        // setUsuarios(prev => [
+        //   ...prev,
+        //   { ...input, id: input.rut, createdAt: new Date().toISOString() }
+        // ]);
 
         return { ok: true };
       } catch (e) {
@@ -117,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // -------- Inicio de sesión SOLO contra microservicio --------
   const iniciarSesion = useCallback(async ({ correo, password }: LoginForm) => {
     try {
-      // Llama SIEMPRE al users-service
+      // Llama SIEMPRE al servicio de autenticación / usuarios
       const resp: LoginResponse = await loginApi({
         correo,
         contrasenia: password,
@@ -138,7 +138,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin: resp.rolNombre === "ADMIN",
       };
 
-      
+      // Guardamos solo en memoria (sin localStorage)
+      setSesion(nuevaSesion);
 
       return { ok: true };
     } catch (e) {
@@ -150,11 +151,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  
+  // -------- Cerrar sesión --------
+  const cerrarSesion = useCallback(() => {
+    setSesion(null);
+  }, []);
 
-  
+  const value = useMemo<AuthContextType>(
+    () => ({
+      usuarios,
+      sesion,
+      registrarUsuario,
+      iniciarSesion,
+      cerrarSesion,
+    }),
+    [usuarios, sesion, registrarUsuario, iniciarSesion, cerrarSesion]
+  );
 
-  
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 // Hook de consumo del contexto de autenticación

@@ -5,19 +5,6 @@ export type LoginRequest = {
   contrasenia: string;
 };
 
-// Petición de registro 
-export type RegistroRequest = {
-  rut: string;
-  nombre: string;
-  apellidos: string;
-  correo: string;
-  numeroTelefono: string;
-  fechaNacimiento: string;
-  regionId: string;
-  comunaId: string;
-  direccion: string;
-  password: string;
-};
 //Peticion de login
 export type LoginResponse = {
   success: boolean;
@@ -45,6 +32,20 @@ export async function loginApi(req: { correo: string; contrasenia: string }) {
   return (await res.json()) as LoginResponse;
 }
 
+// Petición de registro 
+export type RegistroRequest = {
+  rut: string;
+  nombre: string;
+  apellidos: string;
+  correo: string;
+  numeroTelefono: string;
+  fechaNacimiento: string;
+  regionId: string;
+  comunaId: string;
+  direccion: string;
+  password: string;
+};
+
 // Respuesta del backend al registrar (ajusta según tu microservicio)
 export type RegistroResponse = {
   success: boolean;
@@ -54,13 +55,23 @@ export type RegistroResponse = {
 export async function registrarUsuarioApi(
   payload: RegistroRequest
 ): Promise<RegistroResponse> {
-  const res = await fetch(`${USERS_URL}/usuarios`, {
-    //AJUSTA esta ruta a la que realmente uses en tu users-service
+  // adaptamos los nombres al DTO del backend
+  const backendBody = {
+    rut: payload.rut,
+    nombre: payload.nombre,
+    apellidos: payload.apellidos,
+    correo: payload.correo,
+    fechaNacimiento: payload.fechaNacimiento,
+    contrasenia: payload.password,
+    confirmarContrasenia: payload.password, // usamos la misma contraseña
+    direccion: payload.direccion,
+    telefono: payload.numeroTelefono,
+  };
+
+  const res = await fetch(`${USERS_URL}/registros/registro-completo`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(backendBody),
   });
 
   if (!res.ok) {
@@ -69,7 +80,7 @@ export async function registrarUsuarioApi(
     throw new Error(`HTTP ${res.status} ${text}`);
   }
 
-  // Si tu backend no devuelve este formato, ajusta el parseo.
-  const data = (await res.json()) as RegistroResponse;
-  return data;
+  // tu backend devuelve: new RegistroCompletoResponse(true, usuario)
+  const data = (await res.json()) as { success: boolean; usuario: string };
+  return { success: data.success }; // adaptamos a tu RegistroResponse
 }
