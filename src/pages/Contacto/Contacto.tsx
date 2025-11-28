@@ -8,6 +8,7 @@ import {
   type MensajeConRespuestaDTO,
   type RolNombre,
 } from '../../api/supportApi'
+import { useMessages } from '../../context/MessagesContext'
 
 type FormContacto = {
   nombre: string
@@ -28,6 +29,7 @@ export default function Contacto() {
   const [cargandoBandeja, setCargandoBandeja] = useState(false)
 
   const { sesion } = useAuth()
+  const { addMessage } = useMessages()
 
   const set = <K extends keyof FormContacto>(k: K, v: FormContacto[K]) =>
     setForm(p => ({ ...p, [k]: v }))
@@ -90,6 +92,15 @@ export default function Contacto() {
 
         // 🔹 Después de enviar, recargamos la bandeja desde la BD
         await cargarBandejaUsuario()
+
+        // 🔹 También lo guardamos en el contexto para el dashboard/admin
+        addMessage({
+          nombre: form.nombre,
+          correo: form.correo,
+          asunto: form.asunto,
+          mensaje: form.mensaje,
+          userKey: sesion.rut,
+        })
       }
 
       await alertSuccess('Mensaje enviado', 'Te contactaremos pronto')

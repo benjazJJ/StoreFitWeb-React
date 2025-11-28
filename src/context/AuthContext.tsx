@@ -93,11 +93,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
         }
 
-        // Si quieres, puedes cachear en memoria:
-        // setUsuarios(prev => [
-        //   ...prev,
-        //   { ...input, id: input.rut, createdAt: new Date().toISOString() }
-        // ]);
+        // 🔹 NUEVO: también lo guardamos en memoria para el dashboard/admin
+        setUsuarios((prev) => [
+          ...prev,
+          {
+            ...input,
+            id: input.rut,
+            createdAt: new Date().toISOString(),
+          },
+        ]);
 
         return { ok: true };
       } catch (e) {

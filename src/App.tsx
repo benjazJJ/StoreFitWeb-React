@@ -16,7 +16,6 @@ import MisCompras from "./pages/Perfil/MisCompras";
 import AdminProductos from "./pages/Admin/ProductosAdmin";
 import UsuariosAdmin from "./pages/Admin/UsuariosAdmin";
 import PedidosAdmin from "./pages/Admin/PedidosAdmin";
-import ReportesAdmin from "./pages/Admin/ReportesAdmin";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import MensajesAdmin from "./pages/Admin/MensajesAdmin";
@@ -70,7 +69,6 @@ export default function App() {
                     <Route path="Productos" element={<AdminProductos />} />
                     <Route path="Usuarios" element={<UsuariosAdmin />} />
                     <Route path="Pedidos" element={<PedidosAdmin />} />
-                    <Route path="Reportes" element={<ReportesAdmin />} />
                     <Route path="Mensajes" element={<MensajesAdmin />} />
                   </Route>
                   <Route path="*" element={<Navigate to="/" replace />} />
