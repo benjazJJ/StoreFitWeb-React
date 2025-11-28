@@ -1,24 +1,30 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import "../../styles/Login.css";
 import { validarCorreo, passwordValida } from "../../utils/validaciones";
 import { useAuth } from "../../context/AuthContext";
 import { alertSuccess, alertError } from "../../utils/alerts"; // Alertas
 
 export default function InicioSesion() {
-    const { iniciarSesion } = useAuth(); // Acción de autenticación desde contexto (useState)
+    const { iniciarSesion } = useAuth(); // Acción de autenticación desde contexto
     const [correo, setCorreo] = useState("");
     const [contrasenia, setContrasenia] = useState("");
     const [recordar, setRecordar] = useState(false);
     const [errores, setErrores] = useState<Record<string, string>>({});
     const [enviando, setEnviando] = useState(false);
     const [mostrarContrasenia, setMostrarContrasenia] = useState(false);
+
     const navigate = useNavigate();
+    const location = useLocation();
+    const from = (location.state as { from?: string } | null)?.from || "/";
 
     const validarCampo = (campo: "correo" | "contrasenia"): string | undefined => {
         if (campo === "correo") return validarCorreo(correo);
-        if (campo === "contrasenia")
-            return !passwordValida(contrasenia) ? "Contraseña entre 4 y 20 caracteres": undefined;
+        if (campo === "contrasenia") {
+            return !passwordValida(contrasenia)
+                ? "Contraseña entre 4 y 20 caracteres"
+                : undefined;
+        }
         return undefined;
     };
 
@@ -51,26 +57,29 @@ export default function InicioSesion() {
                     setErrores({ contrasenia: mensaje });
                 } else {
                     setErrores({ global: mensaje ?? "No se pudo iniciar sesión" });
-                    // Alerta de error
-                    alertError("No se pudo iniciar sesión", mensaje ?? "Revisa tus credenciales");
+                    await alertError(
+                        "No se pudo iniciar sesión",
+                        mensaje ?? "Revisa tus credenciales"
+                    );
                 }
                 return;
             }
 
-            if (recordar) sessionStorage.setItem("remember", "1");
+            if (recordar) {
+                sessionStorage.setItem("remember", "1");
+            }
 
             // Éxito
             await alertSuccess("¡Has iniciado sesión exitosamente!");
 
-            // Redirige
-            navigate("/");
+            // 🔹 AHORA: redirige a la página que pidió autenticación (ej: /Checkout)
+            navigate(from, { replace: true });
         } catch (err) {
             console.error("Error al iniciar sesión:", err);
             setErrores({
                 global: "Error inesperado al iniciar sesión. Intenta nuevamente.",
             });
-            // Alerta en error
-            alertError("Error inesperado", "Intenta nuevamente.");
+            await alertError("Error inesperado", "Intenta nuevamente.");
         } finally {
             setEnviando(false);
         }
@@ -78,22 +87,16 @@ export default function InicioSesion() {
 
     return (
         <div className="sf-auth-container">
-            <form onSubmit={onSubmit} className="sf-form--auth" noValidate>
+            <form className="sf-auth-card" onSubmit={onSubmit} noValidate>
                 <div className="sf-auth-header">
                     <h1>¡Bienvenido de vuelta!</h1>
-                    <p className="sf-auth-subtitle">Ingresa tus credenciales para continuar</p>
+                    <p className="sf-auth-subtitle">
+                        Ingresa tus credenciales para continuar
+                    </p>
                 </div>
 
                 {errores.global && (
                     <div className="sf-alert sf-alert--error" role="alert">
-                        <svg className="sf-alert-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                        </svg>
                         <span>{errores.global}</span>
                     </div>
                 )}
@@ -105,24 +108,18 @@ export default function InicioSesion() {
                             Correo electrónico
                         </label>
                         <div className="sf-input-wrapper">
-                            <svg className="sf-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                                />
-                            </svg>
                             <input
                                 id="email"
                                 type="email"
-                                className={`sf-input ${errores.correo ? "sf-input--error" : ""}`}
-                                placeholder="tucorreo@duoc.cl"
+                                className={`sf-input ${errores.correo ? "sf-input--error" : ""
+                                    }`}
+                                placeholder="correo@ejemplo.com"
                                 value={correo}
                                 onChange={(e) => setCorreo(e.target.value)}
                                 onBlur={() => {
                                     const error = validarCampo("correo");
-                                    if (error) setErrores((p) => ({ ...p, correo: error }));
+                                    if (error)
+                                        setErrores((p) => ({ ...p, correo: error }));
                                 }}
                                 aria-invalid={!!errores.correo}
                                 aria-describedby={errores.correo ? "correo-error" : undefined}
@@ -130,9 +127,9 @@ export default function InicioSesion() {
                             />
                         </div>
                         {errores.correo && (
-                            <span id="correo-error" className="sf-field-error">
+                            <p id="correo-error" className="sf-field-error">
                                 {errores.correo}
-                            </span>
+                            </p>
                         )}
                     </div>
 
@@ -142,93 +139,69 @@ export default function InicioSesion() {
                             Contraseña
                         </label>
                         <div className="sf-input-wrapper">
-                            <svg className="sf-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                                />
-                            </svg>
                             <input
                                 id="password"
                                 type={mostrarContrasenia ? "text" : "password"}
-                                className={`sf-input ${errores.contrasenia ? "sf-input--error" : ""}`}
-                                placeholder="4 a 10 caracteres"
+                                className={`sf-input ${errores.contrasenia ? "sf-input--error" : ""
+                                    }`}
+                                placeholder="4 a 20 caracteres"
                                 value={contrasenia}
                                 onChange={(e) => setContrasenia(e.target.value)}
                                 onBlur={() => {
                                     const error = validarCampo("contrasenia");
-                                    if (error) setErrores((p) => ({ ...p, contrasenia: error }));
+                                    if (error)
+                                        setErrores((p) => ({
+                                            ...p,
+                                            contrasenia: error,
+                                        }));
                                 }}
                                 aria-invalid={!!errores.contrasenia}
-                                aria-describedby={errores.contrasenia ? "pass-error" : undefined}
+                                aria-describedby={
+                                    errores.contrasenia ? "pass-error" : undefined
+                                }
                                 disabled={enviando}
                             />
                             <button
                                 type="button"
                                 className="sf-input-action"
                                 onClick={() => setMostrarContrasenia(!mostrarContrasenia)}
-                                aria-label={mostrarContrasenia ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                aria-label={
+                                    mostrarContrasenia
+                                        ? "Ocultar contraseña"
+                                        : "Mostrar contraseña"
+                                }
                                 disabled={enviando}
                             >
-                                {mostrarContrasenia ? (
-                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                                        />
-                                    </svg>
-                                ) : (
-                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                        />
-                                    </svg>
-                                )}
+                                {mostrarContrasenia ? "Ocultar" : "Ver"}
                             </button>
                         </div>
                         {errores.contrasenia && (
-                            <span id="pass-error" className="sf-field-error">
+                            <p id="pass-error" className="sf-field-error">
                                 {errores.contrasenia}
-                            </span>
+                            </p>
                         )}
                     </div>
 
-                    {/* Recordarme */}
-                    <div className="sf-checkbox-wrapper">
-                        <label className="sf-checkbox-label">
+                    {/* Recordar */}
+                    <div className="sf-field sf-field--inline">
+                        <label className="sf-checkbox">
                             <input
                                 type="checkbox"
-                                className="sf-checkbox-input"
                                 checked={recordar}
                                 onChange={(e) => setRecordar(e.target.checked)}
                                 disabled={enviando}
                             />
-                            <span className="sf-checkbox-custom"></span>
-                            <span className="sf-checkbox-text">Recordarme por 30 días</span>
+                            <span>Recordarme en este dispositivo</span>
                         </label>
                     </div>
 
                     {/* Botón */}
-                    <button type="submit" className="sf-btn sf-btn--primary" disabled={enviando}>
-                        {enviando ? (
-                            <>
-                                <svg className="sf-btn-spinner" viewBox="0 0 24 24">
-                                    <circle className="sf-spinner-track" cx="12" cy="12" r="10" fill="none" strokeWidth="3" />
-                                    <circle className="sf-spinner-circle" cx="12" cy="12" r="10" fill="none" strokeWidth="3" />
-                                </svg>
-                                Iniciando sesión...
-                            </>
-                        ) : (
-                            "Iniciar sesión"
-                        )}
+                    <button
+                        type="submit"
+                        className="sf-btn sf-btn--primary"
+                        disabled={enviando}
+                    >
+                        {enviando ? "Iniciando sesión..." : "Iniciar sesión"}
                     </button>
                 </div>
 

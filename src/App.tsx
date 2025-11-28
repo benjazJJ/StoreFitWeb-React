@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import type React from 'react';
+import type React from "react";
 import SitioLayout from "./layouts/SitioLayout";
 
 // Páginas
@@ -20,67 +20,124 @@ import ReportesAdmin from "./pages/Admin/ReportesAdmin";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import MensajesAdmin from "./pages/Admin/MensajesAdmin";
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { ProductsProvider } from './context/ProductsContext';
-import { StockProvider } from './context/StockContext';
-import { CartProvider } from './context/CartContext';
-import { OrdersProvider } from './context/OrdersContext';
-import { ReportsProvider } from './context/ReportsContext';
-import { MessagesProvider } from './context/MessagesContext';
 
-import { ProveedorTema } from './context/ThemeContext';
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ProductsProvider } from "./context/ProductsContext";
+import { StockProvider } from "./context/StockContext";
+import { CartProvider } from "./context/CartContext";
+import { OrdersProvider } from "./context/OrdersContext";
+import { ReportsProvider } from "./context/ReportsContext";
+import { MessagesProvider } from "./context/MessagesContext";
+
+import { ProveedorTema } from "./context/ThemeContext";
 import ProductoDetalle from "./pages/Productos/ProductoDetalle";
 import Checkout from "./pages/Carrito/Checkout";
+import DetalleCompra from "./pages/Perfil/DetalleCompra";
 
-// Ruta protegida para admin usando estado global (useState en AuthContext)
+
+// 🔐 Ruta protegida genérica basada SOLO en el contexto
+function RutaProtegida({ children }: { children: React.ReactNode }) {
+  const { sesion } = useAuth();
+
+  if (!sesion) {
+    return <Navigate to="/InicioSesion" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// Ruta protegida para admin
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { sesion } = useAuth()
-  return sesion?.isAdmin ? <>{children}</> : <Navigate to="/InicioSesion" replace />
+  const { sesion } = useAuth();
+  return sesion?.isAdmin ? <>{children}</> : <Navigate to="/InicioSesion" replace />;
 }
 
 export default function App() {
   return (
-    // Proveedores de estado compartido basados en useState
     <AuthProvider>
       <ProductsProvider>
         <StockProvider>
           <CartProvider>
             <OrdersProvider>
-            <ReportsProvider>
-            <MessagesProvider>
-            <ProveedorTema>
-              <Routes>
-                <Route path="/" element={<SitioLayout />}>
-                  <Route index element={<Inicio />} />
-                  <Route path="/productos" element={<Productos />} />
-                  <Route path="/productos/:slug" element={<ProductoDetalle/>} />
-                  <Route path="Checkout" element={<Checkout />} />
-                  <Route path="Registro" element={<Registro />} />
-                  <Route path="InicioSesion" element={<InicioSesion />} />
-                  <Route path="Perfil" element={<Pageperfil />} />
-                  <Route path="MisCompras" element={<MisCompras />} />
-                  <Route path="Contacto" element={<Contacto />} />
-                  <Route path="Carrito" element={<Carrito />} />
-                  <Route path="Nosotros" element={<Nosotros />} />
-                  <Route path="Blog" element={<Blog />} />
-                  <Route path="Admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-                    <Route index element={<AdminDashboard />} />
-                    <Route path="Productos" element={<AdminProductos />} />
-                    <Route path="Usuarios" element={<UsuariosAdmin />} />
-                    <Route path="Pedidos" element={<PedidosAdmin />} />
-                    <Route path="Reportes" element={<ReportesAdmin />} />
-                    <Route path="Mensajes" element={<MensajesAdmin />} />
-                  </Route>
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Route>
-              </Routes>
-            </ProveedorTema>
-            </MessagesProvider>
-            </ReportsProvider>
+              <ReportsProvider>
+                <MessagesProvider>
+                  <ProveedorTema>
+                    <Routes>
+                      <Route path="/" element={<SitioLayout />}>
+                        <Route index element={<Inicio />} />
+                        <Route path="/productos" element={<Productos />} />
+                        <Route path="/productos/:id" element={<ProductoDetalle />} />
+                        <Route path="/productos/:categoria/:id" element={<ProductoDetalle />} />
+
+                        {/* Checkout protegido */}
+                        <Route
+                          path="Checkout"
+                          element={
+                            <RutaProtegida>
+                              <Checkout />
+                            </RutaProtegida>
+                          }
+                        />
+
+                        {/* 🔐 Rutas de perfil protegidas */}
+                        <Route
+                          path="DetalleCompra/:id"
+                          element={
+                            <RutaProtegida>
+                              <DetalleCompra />
+                            </RutaProtegida>
+                          }
+                        />
+                        <Route
+                          path="Perfil"
+                          element={
+                            <RutaProtegida>
+                              <Pageperfil />
+                            </RutaProtegida>
+                          }
+                        />
+                        <Route
+                          path="MisCompras"
+                          element={
+                            <RutaProtegida>
+                              <MisCompras />
+                            </RutaProtegida>
+                          }
+                        />
+
+                        <Route path="Registro" element={<Registro />} />
+                        <Route path="InicioSesion" element={<InicioSesion />} />
+                        <Route path="Contacto" element={<Contacto />} />
+                        <Route path="Carrito" element={<Carrito />} />
+                        <Route path="Nosotros" element={<Nosotros />} />
+                        <Route path="Blog" element={<Blog />} />
+
+                        <Route
+                          path="Admin"
+                          element={
+                            <AdminRoute>
+                              <AdminLayout />
+                            </AdminRoute>
+                          }
+                        >
+                          <Route index element={<AdminDashboard />} />
+                          <Route path="Productos" element={<AdminProductos />} />
+                          <Route path="Usuarios" element={<UsuariosAdmin />} />
+                          <Route path="Pedidos" element={<PedidosAdmin />} />
+                          <Route path="Reportes" element={<ReportesAdmin />} />
+                          <Route path="Mensajes" element={<MensajesAdmin />} />
+                        </Route>
+
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                      </Route>
+                    </Routes>
+                  </ProveedorTema>
+                </MessagesProvider>
+              </ReportsProvider>
             </OrdersProvider>
           </CartProvider>
         </StockProvider>
       </ProductsProvider>
     </AuthProvider>
-  )
+  );
 }

@@ -1,113 +1,326 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useCart } from "../../context/CartContext";
+import type { Carrito as CarritoType, Talla, CarritoItem } from "../../types/Producto";
+import {
+  obtenerCarrito,
+  actualizarItemCarrito,
+  removerDelCarrito,
+  limpiarCarrito,
+  obtenerProductoPorId,
+} from "../../api/catalogApi";
 import { formatearCLP } from "../../utils/formatoMoneda";
 import { alertSuccess, alertError } from "../../utils/alerts";
 import { useAuth } from "../../context/AuthContext";
-import { useStock } from "../../context/StockContext";
 
 export default function Carrito() {
-  const { items: articulos, setQty, remove, clear, total } = useCart(); // Estado de carrito via useState
   const navigate = useNavigate();
-  const { sesion: sesionActual } = useAuth();               // Sesión actual via useState
-  const { stockDisponible, disminuirStock } = useStock();   // Stock en memoria via useState
+  const { sesion } = useAuth(); // por si quieres mostrar algo del usuario luego
 
-  const aumentar = (id: number, talla?: string) => {
-    const it = articulos.find(i => i.id === id && (i.talla ?? 'U') === (talla ?? 'U'));
-    if (!it) return;
-    const disp = stockDisponible(id, (it.talla as any) ?? 'U');
-    if (it.qty >= disp) { alertError('Stock insuficiente'); return; }
-    setQty(id, Math.min(disp, it.qty + 1), (it.talla as any) ?? 'U');
-  };
+  const [carrito, setCarrito] = useState<CarritoType | null>(null);
+  const [itemsDetallados, setItemsDetallados] = useState<CarritoItem[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actualizando, setActualizando] = useState(false);
 
-  const disminuir = (id: number, talla?: string) => {
-    const it = articulos.find(i => i.id === id && (i.talla ?? 'U') === (talla ?? 'U'));
-    if (!it) return;
-    const next = it.qty - 1;
-    if (next <= 0) remove(id, (it.talla as any) ?? 'U'); else setQty(id, next, (it.talla as any) ?? 'U');
-  };
+  // Cargar carrito
+  useEffect(() => {
+    const cargarCarrito = async () => {
+      try {
+        setCargando(true);
+        setError(null);
+        const data = await obtenerCarrito();
+        setCarrito(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error al cargar carrito");
+        console.error("Error:", err);
+      } finally {
+        setCargando(false);
+      }
+    };
 
-  const onCambioCantidad = (id: number, talla: string | undefined, v: string) => {
-    const n = Math.max(0, Math.min(99, Number(v.replace(/\D/g, "")) || 0));
-    if (n <= 0) { remove(id, (talla as any) ?? 'U'); return; }
-    const disp = stockDisponible(id, (talla as any) ?? 'U');
-    const final = Math.min(n, disp);
-    if (final < n) alertError('Stock insuficiente');
-    setQty(id, final, (talla as any) ?? 'U');
-  };
+    cargarCarrito();
+  }, []);
 
-  const onQuitar = (id: number, talla?: string) => { remove(id, (talla as any) ?? 'U'); };
-  const onVaciar = () => { clear(); };
-
-  const onPagar = async () => {
-    try {
-      if (articulos.length === 0) return;
-      if (!sesionActual) {
-        await alertError("Inicia sesión", "Debes iniciar sesión para pagar");
-        navigate("/InicioSesion");
+  // Enriquecer items con datos reales desde catalog-service
+  useEffect(() => {
+    const enriquecer = async () => {
+      if (!carrito || !carrito.items || carrito.items.length === 0) {
+        setItemsDetallados([]);
         return;
       }
-      // Redirige a Checkout para confirmar datos y envío
-      navigate("/Checkout");
+
+      try {
+        const enriquecidos = await Promise.all(
+          carrito.items.map(async (item) => {
+            try {
+              const prod = await obtenerProductoPorId(item.productoId);
+
+              const imagen =
+                prod.imagenes?.find((img) => img.principal)?.url ??
+                prod.imagenes?.[0]?.url ??
+                "/img/placeholder.svg";
+
+              let precio = prod.precio;
+              if (prod.tallas && prod.tallas.length > 0) {
+                const tallaInfo = prod.tallas.find((t) => t.talla === item.talla);
+                if (tallaInfo) {
+                  precio = tallaInfo.precio;
+                }
+              }
+
+              return {
+                ...item,
+                nombre: prod.nombre,
+                precio,
+                imagen,
+              } as CarritoItem;
+            } catch (e) {
+              console.warn("No se pudo enriquecer item de carrito:", e);
+              return item;
+            }
+          })
+        );
+
+        setItemsDetallados(enriquecidos);
+      } catch (e) {
+        console.error("Error enriqueciendo carrito:", e);
+        setItemsDetallados(carrito.items);
+      }
+    };
+
+    enriquecer();
+  }, [carrito]);
+
+  const handleActualizarCantidad = async (
+    productoId: string,
+    talla: Talla,
+    cantidad: number
+  ) => {
+    if (cantidad < 1) {
+      handleRemover(productoId, talla);
       return;
-      await alertSuccess("Compra realizada", "¡Gracias por tu compra!");
-      // Descuenta stock por ítem y talla
-      for (const it of articulos) disminuirStock(it.id, (it.talla as any) ?? 'U', it.qty);
-      clear();
-      navigate("/");
-    } catch {
-      alertError("No se pudo completar la compra");
+    }
+
+    try {
+      setActualizando(true);
+      const nuevoCarrito = await actualizarItemCarrito(productoId, cantidad, talla);
+      setCarrito(nuevoCarrito);
+    } catch (err) {
+      await alertError(
+        "Error",
+        err instanceof Error ? err.message : "No se pudo actualizar"
+      );
+      console.error("Error:", err);
+    } finally {
+      setActualizando(false);
     }
   };
+
+  const handleRemover = async (productoId: string, talla: Talla) => {
+    try {
+      setActualizando(true);
+      const nuevoCarrito = await removerDelCarrito(productoId, talla);
+      setCarrito(nuevoCarrito);
+    } catch (err) {
+      await alertError(
+        "Error",
+        err instanceof Error ? err.message : "No se pudo remover"
+      );
+      console.error("Error:", err);
+    } finally {
+      setActualizando(false);
+    }
+  };
+
+  const handleVaciar = async () => {
+    if (!window.confirm("¿Deseas vaciar el carrito?")) return;
+
+    try {
+      setActualizando(true);
+      await limpiarCarrito();
+      setCarrito(null);
+      setItemsDetallados([]);
+      await alertSuccess("Carrito vaciado");
+    } catch (err) {
+      await alertError(
+        "Error",
+        err instanceof Error ? err.message : "No se pudo vaciar"
+      );
+      console.error("Error:", err);
+    } finally {
+      setActualizando(false);
+    }
+  };
+
+  const handlePagar = async () => {
+    if (!carrito || carrito.items.length === 0) {
+      await alertError("Carrito vacío");
+      return;
+    }
+
+    // Si no hay sesión en el contexto, mandamos al login
+    if (!sesion) {
+      await alertError(
+        "Inicia sesión",
+        "Debes iniciar sesión para continuar con el pago."
+      );
+      navigate("/InicioSesion", { state: { from: "/Checkout" } });
+      return;
+    }
+
+    // Si hay sesión, vamos directo al checkout
+    navigate("/Checkout");
+  };
+
+
+  if (cargando) {
+    return (
+      <main className="container py-4">
+        <div className="text-center text-muted py-5">
+          <p>Cargando carrito...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="container py-4">
+        <div className="text-center text-danger py-5">
+          <p className="mb-3">{error}</p>
+          <button
+            className="btn btn-outline-secondary"
+            onClick={() => window.location.reload()}
+          >
+            Reintentar
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  const items = itemsDetallados.length ? itemsDetallados : carrito?.items ?? [];
+
+  const subtotal = items.reduce(
+    (s, item) => s + (item.precio || 0) * (item.cantidad || 0),
+    0
+  );
 
   return (
     <main className="container py-4 sf-cart">
       <header className="d-flex align-items-center justify-content-between mb-4">
         <h1 className="m-0">Carrito</h1>
-        {articulos.length > 0 && (
-          <button className="btn btn-outline-danger btn-sm" onClick={onVaciar}>Vaciar carrito</button>
+        {items.length > 0 && (
+          <button
+            className="btn btn-outline-danger btn-sm"
+            onClick={handleVaciar}
+            disabled={actualizando}
+          >
+            Vaciar carrito
+          </button>
         )}
       </header>
 
-      {articulos.length === 0 ? (
+      {items.length === 0 ? (
         <div className="text-center text-muted py-5">
           <p className="mb-3">Tu carrito está vacío.</p>
-          <Link to="/productos" className="btn btn-primary">Explorar productos</Link>
+          <Link to="/productos" className="btn btn-primary">
+            Explorar productos
+          </Link>
         </div>
       ) : (
         <div className="row g-4">
           <section className="col-12 col-lg-8">
             <div className="list-group">
-              {articulos.map(it => (
-                <div key={`${it.id}-${it.talla ?? 'U'}`} className="list-group-item d-flex flex-wrap gap-3 align-items-center">
+              {items.map((item) => (
+                <div
+                  key={`${item.productoId}-${item.talla}`}
+                  className="list-group-item d-flex flex-wrap gap-3 align-items-center"
+                >
                   <img
-                    src={it.imagen ?? "/img/placeholder.svg"}
-                    alt={it.nombre}
+                    src={item.imagen || "/img/placeholder.svg"}
+                    alt={item.nombre}
                     width={72}
                     height={72}
                     className="rounded object-fit-cover flex-shrink-0"
-                    onError={(e) => (e.currentTarget.src = "/img/placeholder.svg")}
+                    onError={(e) =>
+                      (e.currentTarget.src = "/img/placeholder.svg")
+                    }
                   />
+
                   <div className="flex-grow-1">
-                    <div className="fw-semibold">{it.nombre}</div>
+                    <div className="fw-semibold">{item.nombre}</div>
                     <small className="text-muted">
-                      {formatearCLP(it.precio)}{it.talla && it.talla !== 'U' ? ` · Talla ${it.talla}` : ''}
+                      {formatearCLP(item.precio)} · Talla {item.talla}
                     </small>
                   </div>
+
                   <div className="d-inline-flex align-items-center border rounded qty-control">
-                    <button className="btn btn-light" onClick={() => disminuir(it.id, it.talla as any)} aria-label="Disminuir">−</button>
+                    <button
+                      className="btn btn-light"
+                      onClick={() =>
+                        handleActualizarCantidad(
+                          item.productoId,
+                          item.talla,
+                          item.cantidad - 1
+                        )
+                      }
+                      disabled={actualizando || item.cantidad <= 1}
+                      aria-label="Disminuir"
+                    >
+                      −
+                    </button>
                     <input
                       className="form-control text-center"
-                      style={{ width: 70, border: "none", boxShadow: "none" }}
-                      value={it.qty}
-                      onChange={(e) => onCambioCantidad(it.id, it.talla as any, e.target.value)}
+                      style={{
+                        width: 70,
+                        border: "none",
+                        boxShadow: "none",
+                      }}
+                      value={item.cantidad}
+                      onChange={(e) => {
+                        const val = Math.max(
+                          1,
+                          parseInt(e.target.value) || 1
+                        );
+                        handleActualizarCantidad(
+                          item.productoId,
+                          item.talla,
+                          val
+                        );
+                      }}
+                      disabled={actualizando}
                       inputMode="numeric"
                     />
-                    <button className="btn btn-light" onClick={() => aumentar(it.id, it.talla as any)} aria-label="Aumentar">+</button>
+                    <button
+                      className="btn btn-light"
+                      onClick={() =>
+                        handleActualizarCantidad(
+                          item.productoId,
+                          item.talla,
+                          item.cantidad + 1
+                        )
+                      }
+                      disabled={actualizando}
+                      aria-label="Aumentar"
+                    >
+                      +
+                    </button>
                   </div>
+
                   <div className="text-end cart-actions">
-                    <div className="fw-semibold">{formatearCLP(it.precio * it.qty)}</div>
-                    <button className="btn btn-sm btn-outline-secondary mt-1" onClick={() => onQuitar(it.id, it.talla as any)}>Quitar</button>
+                    <div className="fw-semibold">
+                      {formatearCLP(item.precio * item.cantidad)}
+                    </div>
+                    <button
+                      className="btn btn-sm btn-outline-secondary mt-1"
+                      onClick={() =>
+                        handleRemover(item.productoId, item.talla)
+                      }
+                      disabled={actualizando}
+                    >
+                      Quitar
+                    </button>
                   </div>
                 </div>
               ))}
@@ -118,14 +331,28 @@ export default function Carrito() {
             <div className="card shadow-sm">
               <div className="card-body">
                 <h5 className="card-title">Resumen</h5>
+
                 <div className="d-flex justify-content-between mb-2">
-                  <span>Subtotal</span>
-                  <strong>{formatearCLP(total)}</strong>
+                  <span>Subtotal ({items.length} artículos)</span>
+                  <strong>{formatearCLP(subtotal)}</strong>
                 </div>
-                <button className="btn btn-primary w-100 mb-2" onClick={onPagar}>Pagar</button>
-                {!sesionActual && (
-                  <button className="btn btn-outline-secondary w-100" onClick={() => navigate("/InicioSesion")}>Iniciar sesión</button>
-                )}
+
+                <hr className="my-3" />
+
+                <button
+                  className="btn btn-primary w-100 mb-2"
+                  onClick={handlePagar}
+                  disabled={actualizando || items.length === 0}
+                >
+                  Proceder al pago
+                </button>
+
+                <button
+                  className="btn btn-outline-secondary w-100"
+                  onClick={() => navigate("/productos")}
+                >
+                  Seguir comprando
+                </button>
               </div>
             </div>
           </aside>

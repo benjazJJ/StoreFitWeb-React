@@ -1,6 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import type { Producto, Talla } from '../types/Producto'
-import { PRODUCTOS } from '../types/Producto'
 
 // Tipos para operaciones CRUD de productos
 export type NuevoProducto = Omit<Producto, 'id'> & { id?: never }
@@ -9,35 +8,35 @@ export type PatchProducto = Partial<Omit<Producto, 'id'>>
 type ProductsContextType = {
   productos: Producto[]                                           // Lista en memoria de productos
   obtenerProductos: () => Producto[]                              // Devuelve la lista actual
-  obtenerProductoPorId: (id: number) => Producto | null           // Busca un producto por ID
+  obtenerProductoPorId: (id: string) => Producto | null           // Busca un producto por ID
   crearProducto: (data: NuevoProducto) => Producto                // Crea un producto nuevo
-  actualizarProducto: (id: number, patch: PatchProducto) => Producto | null // Actualiza un producto
-  eliminarProducto: (id: number) => void                          // Elimina un producto
+  actualizarProducto: (id: string, patch: PatchProducto) => Producto | null // Actualiza un producto
+  eliminarProducto: (id: string) => void                          // Elimina un producto
 }
 
 const ProductsContext = createContext<ProductsContextType | undefined>(undefined)
 
-// Proveedor de productos con estado en memoria (useState) y sin LocalStorage
+// Proveedor de productos con estado en memoria (useState)
 export function ProductsProvider({ children }: { children: React.ReactNode }) {
-  // Estado: lista de productos; se inicializa con PRODUCTOS (semilla)
-  const [productos, setProductos] = useState<Producto[]>(PRODUCTOS)
+  // Estado: lista de productos; se inicializa vacía (los datos ahora vienen del API)
+  const [productos, setProductos] = useState<Producto[]>([])
 
   // Lee la lista actual (útil para compatibilidad de llamada)
   const obtenerProductos = useCallback(() => productos, [productos])
 
   // Encuentra un producto por ID
-  const obtenerProductoPorId = useCallback((id: number) => productos.find(p => p.id === id) ?? null, [productos])
+  const obtenerProductoPorId = useCallback((id: string) => productos.find(p => p.id === id) ?? null, [productos])
 
   // Crea un nuevo producto, asignando un ID consecutivo
   const crearProducto = useCallback((data: NuevoProducto) => {
-    const nextId = (productos.reduce((a, p) => Math.max(a, p.id), 0) || 0) + 1
-    const nuevo: Producto = { ...data, id: nextId } as Producto
+    const nextId = (parseInt(productos.reduce((a, p) => Math.max(a, parseInt(p.id) || 0), 0).toString()) || 0) + 1
+    const nuevo: Producto = { ...data, id: nextId.toString() } as Producto
     setProductos(prev => [...prev, nuevo])
     return nuevo
   }, [productos])
 
   // Actualiza parcial o totalmente un producto por ID
-  const actualizarProducto = useCallback((id: number, patch: PatchProducto) => {
+  const actualizarProducto = useCallback((id: string, patch: PatchProducto) => {
     let updated: Producto | null = null
     setProductos(prev => {
       const list = [...prev]
@@ -52,7 +51,7 @@ export function ProductsProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // Elimina un producto por ID
-  const eliminarProducto = useCallback((id: number) => {
+  const eliminarProducto = useCallback((id: string) => {
     setProductos(prev => prev.filter(p => p.id !== id))
   }, [])
 

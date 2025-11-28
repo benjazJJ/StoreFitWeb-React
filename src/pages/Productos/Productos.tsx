@@ -1,134 +1,175 @@
 import { useEffect, useMemo, useState } from "react";
-import "../../styles/Producto.css";
-import { PRODUCTOS, type Producto } from "../../types/Producto";
-import TarjetaProducto from "../../components/productos/TarjetaProducto";
-import { useProducts } from "../../context/ProductsContext";
+import type { Producto } from "../../types/Producto";
+import { obtenerProductos } from "../../api/catalogApi";
+import { formatearCLP } from "../../utils/formatoMoneda";
+import { Link } from "react-router-dom";
 
 export default function ProductosPage() {
-  const [q, setQ] = useState("");
-  const [cat, setCat] = useState<string>("");
-  const [datos, setDatos] = useState<Producto[]>([]);
-  const { productos } = useProducts(); // Obtiene lista de productos desde contexto (useState)
+  // 👈 IMPORTANTE: array vacío, nunca null
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  const [busqueda, setBusqueda] = useState("");
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>("TODAS");
+
+  //  SOLO cargamos productos
   useEffect(() => {
-    setDatos(productos);
+    const cargarProductos = async () => {
+      try {
+        setCargando(true);
+        setError(null);
+
+        const data = await obtenerProductos();
+
+        // Normalizamos por si el backend envía {content: [...]} u otra forma
+        const lista: Producto[] = Array.isArray(data)
+          ? data
+          : (data?.content ?? data?.items ?? []);
+
+        setProductos(lista ?? []);
+      } catch (err) {
+        console.error("Error cargando productos", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Error al cargar los productos"
+        );
+      } finally {
+        setCargando(false);
+      }
+    };
+
+    cargarProductos();
+  }, []);
+
+  // 🔹 Categorías derivadas desde los propios productos
+  const categorias = useMemo(() => {
+    if (!Array.isArray(productos) || productos.length === 0) return [];
+    const set = new Set<string>();
+    productos.forEach((p) => {
+      if (p.categoria) {
+        set.add(p.categoria);
+      }
+    });
+    return Array.from(set).sort();
   }, [productos]);
 
-  const categorias = useMemo(
-    () => Array.from(new Set(datos.map(p => p.categoria))).sort(),
-    [datos]
-  );
+  // 🔹 Filtro combinado por nombre + categoría
+  const productosFiltrados = useMemo(() => {
+    if (!Array.isArray(productos)) return [];
 
-  const lista = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    return datos.filter(p => {
-      const okCat = !cat || p.categoria === cat;
-      const okQ =
-        !term ||
-        p.nombre.toLowerCase().includes(term) ||
-        p.categoria.toLowerCase().includes(term);
-      return okCat && okQ;
+    return productos.filter((p) => {
+      const coincideNombre =
+        busqueda.trim().length === 0 ||
+        p.nombre.toLowerCase().includes(busqueda.trim().toLowerCase());
+
+      const coincideCategoria =
+        categoriaSeleccionada === "TODAS" ||
+        p.categoria === categoriaSeleccionada;
+
+      return coincideNombre && coincideCategoria;
     });
-  }, [q, cat, datos]);
+  }, [productos, busqueda, categoriaSeleccionada]);
 
-  const limpiarFiltros = () => {
-    setQ("");
-    setCat("");
-  };
+  if (cargando) {
+    return (
+      <main className="container py-4">
+        <p className="text-muted text-center py-5">Cargando productos...</p>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="container py-4">
+        <div className="text-center text-danger py-5">
+          <p className="mb-3">{error}</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="container py-4">
-      {/* Barra */}
-      <header className="sf-products-toolbar card border-0 shadow-sm mb-3">
-        <div className="card-body d-flex flex-wrap gap-2 align-items-center">
-          <h2 className="m-0 me-auto">Productos</h2>
+      <header className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <h1 className="m-0">Productos</h1>
 
-          {/* Búsqueda */}
-          <form
-            className="input-group sf-input-ghost"
-            role="search"
-            style={{ maxWidth: 380 }}
-            onSubmit={(e) => e.preventDefault()}
-          >
-            <span className="input-group-text" aria-hidden="true">
+        <div className="d-flex flex-column flex-md-row gap-2 flex-grow-1 justify-content-end">
+          {/* Buscador */}
+          <div className="input-group" style={{ maxWidth: 320 }}>
+            <span className="input-group-text">
               <i className="bi bi-search" />
             </span>
             <input
+              type="text"
               className="form-control"
-              placeholder="Buscar por nombre o categoría..."
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              aria-label="Buscar productos"
+              placeholder="Buscar por nombre..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
             />
-            {q && (
-              <button
-                type="button"
-                className="btn btn-outline-secondary"
-                onClick={() => setQ("")}
-                aria-label="Limpiar búsqueda"
-                title="Limpiar"
-              >
-                <i className="bi bi-x-lg" />
-              </button>
-            )}
-          </form>
+          </div>
 
-          {/* Categorías */}
+          {/* Selector de categoría (solo frontend) */}
           <select
-            className="form-select sf-select-ghost"
-            style={{ maxWidth: 240 }}
-            value={cat}
-            onChange={(e) => setCat(e.target.value)}
-            aria-label="Filtrar por categoría"
+            className="form-select"
+            style={{ maxWidth: 220 }}
+            value={categoriaSeleccionada}
+            onChange={(e) => setCategoriaSeleccionada(e.target.value)}
           >
-            <option value="">Todas las categorías</option>
-            {categorias.map((c) => (
-              <option key={c} value={c}>
-                {c}
+            <option value="TODAS">Todas las categorías</option>
+            {categorias.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
               </option>
             ))}
           </select>
-
-          {/* Limpiar */}
-          {(q || cat) && (
-            <button className="btn btn-outline-secondary" onClick={limpiarFiltros}>
-              Limpiar filtros
-            </button>
-          )}
         </div>
-
-        {(q || cat) && (
-          <div className="px-3 pb-3 d-flex flex-wrap gap-2">
-            {q && (
-              <span className="sf-chip" role="button" onClick={() => setQ("")}>Búsqueda: “{q}” <i className="bi bi-x"></i></span>
-            )}
-            {cat && (
-              <span className="sf-chip" role="button" onClick={() => setCat("")}>Categoría: “{cat}” <i className="bi bi-x"></i></span>
-            )}
-          </div>
-        )}
       </header>
 
-      {/* Estado */}
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <small className="text-muted">
-          {lista.length} resultado{lista.length !== 1 ? "s" : ""}{cat ? ` en “${cat}”` : ""}{q ? ` para “${q}”` : ""}
-        </small>
-      </div>
-
-      {/* Grid */}
-      {lista.length === 0 ? (
-        <div className="text-center text-muted py-5">
-          <p className="mb-1">No encontramos resultados</p>
-          <small>Prueba con otros términos o limpia los filtros.</small>
-        </div>
+      {productosFiltrados.length === 0 ? (
+        <p className="text-muted">No se encontraron productos.</p>
       ) : (
-        <section className="row g-3 row-cols-2 row-cols-md-3 row-cols-lg-4">
-          {lista.map((p) => (
-            <div className="col" key={p.id}>
-              <TarjetaProducto producto={p} />
-            </div>
-          ))}
+        <section className="row g-4">
+          {productosFiltrados.map((p) => {
+            const imagenPrincipal =
+              p.imagenes?.find((img) => img.principal)?.url ??
+              p.imagenes?.[0]?.url ??
+              "/img/placeholder.svg";
+
+            return (
+              <article key={p.id} className="col-12 col-sm-6 col-lg-3">
+                <Link
+                  to={`/productos/${p.categoria ?? ""}/${p.id}`}
+                  className="text-decoration-none text-body"
+                >
+                  <div className="card h-100 shadow-sm sf-product-card">
+                    <div className="ratio ratio-1x1 bg-light rounded-top overflow-hidden">
+                      <img
+                        src={imagenPrincipal}
+                        alt={p.nombre}
+                        className="object-fit-cover"
+                        onError={(e) =>
+                          (e.currentTarget.src = "/img/placeholder.svg")
+                        }
+                      />
+                    </div>
+                    <div className="card-body">
+                      <h5 className="card-title mb-1">{p.nombre}</h5>
+                      {p.categoria && (
+                        <small className="text-muted d-block mb-2">
+                          {p.categoria}
+                        </small>
+                      )}
+                      <strong className="text-primary">
+                        {formatearCLP(p.precio)}
+                      </strong>
+                    </div>
+                  </div>
+                </Link>
+              </article>
+            );
+          })}
         </section>
       )}
     </main>
