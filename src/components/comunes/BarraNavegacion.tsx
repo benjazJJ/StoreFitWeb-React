@@ -35,6 +35,16 @@ export default function BarraNavegacion({ onBuscar }: { onBuscar?: (q?: string) 
             <li className="nav-item"><NavLink className="nav-link" to="/productos">Productos</NavLink></li>
             <li className="nav-item"><NavLink className="nav-link" to="/Nosotros">Nosotros</NavLink></li>
             <li className="nav-item"><NavLink className="nav-link" to="/Contacto">Contacto</NavLink></li>
+
+            {/* 🔹 NUEVO: link Mensajes solo para SOPORTE, justo al lado del carrito */}
+            {sesion?.rolNombre === "SOPORTE" && (
+              <li className="nav-item">
+                <NavLink className="nav-link" to="/Mensajes">
+                  Mensajes
+                </NavLink>
+              </li>
+            )}
+
             <li className="nav-item">
               <NavLink className="nav-link d-flex align-items-center gap-1" to="/Carrito" aria-label="Carrito">
                 <i className="bi bi-cart"></i>
