@@ -20,6 +20,7 @@ import ReportesAdmin from "./pages/Admin/ReportesAdmin";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import MensajesAdmin from "./pages/Admin/MensajesAdmin";
+import MensajesSoportePage from "./pages/soporte/MensajesSoportePage";
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProductsProvider } from './context/ProductsContext';
 import { StockProvider } from './context/StockContext';
@@ -61,6 +62,7 @@ export default function App() {
                   <Route path="MisCompras" element={<MisCompras />} />
                   <Route path="Contacto" element={<Contacto />} />
                   <Route path="Carrito" element={<Carrito />} />
+                  <Route path="/Mensajes" element={<MensajesSoportePage />} />
                   <Route path="Nosotros" element={<Nosotros />} />
                   <Route path="Blog" element={<Blog />} />
                   <Route path="Admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
