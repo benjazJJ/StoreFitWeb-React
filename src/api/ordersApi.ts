@@ -50,9 +50,7 @@ export type CompraResponse = {
 };
 
 export type StockReservaItem = {
-  categoriaId: string;
-  productoId: string;
-  talla: string;
+  idProducto: number;
   cantidad: number;
 };
 
@@ -61,15 +59,15 @@ function transformarCompraDto(dto: any): Compra {
   const itemsRaw = dto?.detalles ?? dto?.items ?? dto?.detallesCompra ?? [];
   const items: CompraItem[] = Array.isArray(itemsRaw)
     ? itemsRaw.map((d: any) => {
-        const id = String(d?.idProducto ?? d?.productoId ?? d?.id ?? d?.idDetalle ?? '');
-        const nombre = d?.nombreProducto ?? d?.nombre ?? d?.productoNombre ?? '';
-        const cantidad = Number(d?.cantidad ?? d?.qty ?? 0) || 0;
-        const precioUnitario = Number(d?.precioUnitario ?? d?.precio ?? 0) || 0;
-        const subtotal = Number(d?.subtotal ?? precioUnitario * cantidad) || precioUnitario * cantidad;
-        const talla = d?.talla ?? '';
-        const imagen = d?.imagen ?? d?.imageUrl ?? '';
-        return { id, nombre, cantidad, talla, precioUnitario, subtotal, imagen } as CompraItem;
-      })
+      const id = String(d?.idProducto ?? d?.productoId ?? d?.id ?? d?.idDetalle ?? '');
+      const nombre = d?.nombreProducto ?? d?.nombre ?? d?.productoNombre ?? '';
+      const cantidad = Number(d?.cantidad ?? d?.qty ?? 0) || 0;
+      const precioUnitario = Number(d?.precioUnitario ?? d?.precio ?? 0) || 0;
+      const subtotal = Number(d?.subtotal ?? precioUnitario * cantidad) || precioUnitario * cantidad;
+      const talla = d?.talla ?? '';
+      const imagen = d?.imagen ?? d?.imageUrl ?? '';
+      return { id, nombre, cantidad, talla, precioUnitario, subtotal, imagen } as CompraItem;
+    })
     : [];
 
   // Según el model Java Compra y CompraDetalle:
@@ -127,7 +125,7 @@ export async function obtenerCompraPorId(id: string): Promise<Compra> {
   try {
     const token = localStorage.getItem("token");
     const userRut = localStorage.getItem("userRut") || "";
-    
+
     const res = await fetchConErrores(`${ORDERS_URL}/compras/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -182,7 +180,7 @@ export async function reservarStock(items: StockReservaItem[]): Promise<void> {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
         "X-User-Rut": localStorage.getItem("userRut") || "",
         "X-User-Rol": localStorage.getItem("userRole") || "CLIENTE",
       },
@@ -198,6 +196,15 @@ export async function reservarStock(items: StockReservaItem[]): Promise<void> {
   }
 }
 
+
+// helper para sacar el id numérico del producto ("1/1001" -> 1001)
+function extraerIdProductoNumerico(id: string): number {
+  const partes = String(id).split("/");
+  const ultimo = partes[partes.length - 1];
+  const num = Number(ultimo);
+  return Number.isNaN(num) ? 0 : num;
+}
+
 /**
  * Crear una compra en orders-service
  */
@@ -211,21 +218,49 @@ export async function crearCompra(compra: {
   comuna: string;
   metodoPago: "tarjeta" | "transferencia" | "paypal";
   total: number;
-  items: CompraItem[];
+  items: CompraItem[];   // lo que llega desde Checkout
 }): Promise<Compra> {
   try {
     const token = localStorage.getItem("token");
-    const userRut = localStorage.getItem("userRut") || "";
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-User-Rut": compra.rutUsuario,
+      "X-User-Rol": localStorage.getItem("userRole") || "CLIENTE",
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const detalles = compra.items
+      .map((it) => {
+        const idProducto = extraerIdProductoNumerico(it.id);
+        return {
+          idProducto,                   // Long idProducto en CompraDetalle
+          nombreProducto: it.nombre,    // nombreProducto
+          cantidad: it.cantidad,        // cantidad
+          precioUnitario: it.precioUnitario, // precioUnitario
+        };
+      })
+      .filter((d) => d.idProducto > 0 && d.cantidad > 0);
+
+    if (detalles.length === 0) {
+      throw new Error(
+        "No se pudo preparar los detalles de la compra (idProducto o cantidad inválidos)."
+      );
+    }
+
+
+    const body = {
+      rutUsuario: compra.rutUsuario,
+      detalles,
+
+    };
 
     const res = await fetchConErrores(`${ORDERS_URL}/compras`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        "X-User-Rut": userRut,
-        "X-User-Rol": localStorage.getItem("userRole") || "CLIENTE",
-      },
-      body: JSON.stringify(compra),
+      headers,
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {
@@ -239,3 +274,7 @@ export async function crearCompra(compra: {
     throw new Error(obtenerMensajeError(error));
   }
 }
+
+
+
+

@@ -5,7 +5,6 @@ import { formatearCLP } from "../../utils/formatoMoneda";
 import { Link } from "react-router-dom";
 
 export default function ProductosPage() {
-  // 👈 IMPORTANTE: array vacío, nunca null
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);

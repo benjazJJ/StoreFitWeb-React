@@ -4,10 +4,12 @@ import type { Producto, Talla } from "../../types/Producto";
 import { obtenerProductoPorId, agregarAlCarrito } from "../../api/catalogApi";
 import { formatearCLP } from "../../utils/formatoMoneda";
 import { alertSuccess, alertError } from "../../utils/alerts";
+import { useAuth } from "../../context/AuthContext";
 
 export default function ProductoDetalle() {
     const { id, categoria } = useParams<{ id: string; categoria?: string }>();
     const navigate = useNavigate();
+    const { sesion } = useAuth(); // 👈 NUEVO: sesión desde el contexto
 
     const [producto, setProducto] = useState<Producto | null>(null);
     const [cargando, setCargando] = useState(true);
@@ -59,8 +61,6 @@ export default function ProductoDetalle() {
         });
     }, [producto]);
 
-    // --------- returns condicionales después de los hooks ---------
-
     if (cargando) {
         return (
             <main className="container py-4">
@@ -87,17 +87,25 @@ export default function ProductoDetalle() {
         );
     }
 
-    // Imagen principal
     const imagenPrincipal =
         producto.imagenes?.find((img) => img.principal)?.url ??
         producto.imagenes?.[0]?.url ??
         "/img/placeholder.svg";
 
-    // Stock para talla seleccionada
     const stockTallaActual =
         producto.tallas?.find((t) => t.talla === tallaSeleccionada)?.stock ?? 0;
 
     const handleAgregarCarrito = async () => {
+        // 🔒 Si no hay sesión, pedimos login (evita 401 feos)
+        if (!sesion) {
+            await alertError(
+                "Inicia sesión",
+                "Debes iniciar sesión para agregar productos al carrito."
+            );
+            navigate("/InicioSesion", { state: { from: `/productos/${categoria ?? ""}/${id}` } });
+            return;
+        }
+
         if (!tallaSeleccionada) {
             await alertError("Selecciona una talla");
             return;
@@ -108,6 +116,12 @@ export default function ProductoDetalle() {
             return;
         }
 
+        // Precio real según la talla seleccionada
+        const tallaInfoActual = producto.tallas?.find(
+            (t) => t.talla === tallaSeleccionada
+        );
+        const precioParaCarrito = tallaInfoActual?.precio ?? producto.precio;
+
         try {
             setAgregando(true);
             const productoIdToSend =
@@ -117,7 +131,20 @@ export default function ProductoDetalle() {
                     ? `${producto.variantes[0].idCategoria}/${producto.id}`
                     : producto.id;
 
-            await agregarAlCarrito(productoIdToSend, cantidad, tallaSeleccionada);
+            await agregarAlCarrito(
+                productoIdToSend,
+                cantidad,
+                tallaSeleccionada,
+                {
+                    nombre: producto.nombre,       // 👉 ahora sí se manda al backend
+                    precio: precioParaCarrito,     // 👉 idem
+                },
+                {
+                    rut: sesion.rut,               // 👉 se envía al header X-User-Rut
+                    rol: sesion.rolNombre,         // 👉 se envía al header X-User-Rol
+                }
+            );
+
             await alertSuccess(
                 "Éxito",
                 `${producto.nombre} x${cantidad} agregado al carrito`
@@ -196,8 +223,6 @@ export default function ProductoDetalle() {
                     {producto.tallas && producto.tallas.length > 0 && (
                         <div className="mb-4">
                             <label className="form-label fw-bold">Talla</label>
-
-                            {/* debug visual: cuál está seleccionada */}
                             <div className="mb-1">
                                 <small className="text-muted">
                                     Talla seleccionada:{" "}
@@ -222,24 +247,6 @@ export default function ProductoDetalle() {
                                     </button>
                                 ))}
                             </div>
-
-                            {tallaSeleccionada && (
-                                <div className="mt-2">
-                                    {stockTallaActual <= 2 && stockTallaActual > 0 ? (
-                                        <small className="text-warning">
-                                            ⚠️ Pocas unidades: {stockTallaActual} restantes
-                                        </small>
-                                    ) : stockTallaActual <= 0 ? (
-                                        <small className="text-danger">
-                                            ❌ Sin stock en esta talla
-                                        </small>
-                                    ) : (
-                                        <small className="text-muted">
-                                            ✓ Stock disponible: {stockTallaActual}
-                                        </small>
-                                    )}
-                                </div>
-                            )}
                         </div>
                     )}
 

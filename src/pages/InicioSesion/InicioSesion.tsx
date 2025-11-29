@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import "../../styles/Login.css";
 import { validarCorreo, passwordValida } from "../../utils/validaciones";
@@ -38,7 +38,7 @@ export default function InicioSesion() {
         return Object.keys(e).length === 0;
     };
 
-    const onSubmit = async (ev: React.FormEvent) => {
+    const onSubmit = async (ev: FormEvent) => {
         ev.preventDefault();
         setErrores({});
         if (!validar() || enviando) return;
@@ -72,7 +72,7 @@ export default function InicioSesion() {
             // Éxito
             await alertSuccess("¡Has iniciado sesión exitosamente!");
 
-            // 🔹 AHORA: redirige a la página que pidió autenticación (ej: /Checkout)
+            // 👉 Vuelve a la página que pidió autenticación (por ejemplo /Checkout)
             navigate(from, { replace: true });
         } catch (err) {
             console.error("Error al iniciar sesión:", err);
@@ -87,7 +87,7 @@ export default function InicioSesion() {
 
     return (
         <div className="sf-auth-container">
-            <form className="sf-auth-card" onSubmit={onSubmit} noValidate>
+            <form onSubmit={onSubmit} className="sf-form--auth" noValidate>
                 <div className="sf-auth-header">
                     <h1>¡Bienvenido de vuelta!</h1>
                     <p className="sf-auth-subtitle">
@@ -97,6 +97,14 @@ export default function InicioSesion() {
 
                 {errores.global && (
                     <div className="sf-alert sf-alert--error" role="alert">
+                        <svg className="sf-alert-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                        </svg>
                         <span>{errores.global}</span>
                     </div>
                 )}
@@ -108,18 +116,24 @@ export default function InicioSesion() {
                             Correo electrónico
                         </label>
                         <div className="sf-input-wrapper">
+                            <svg className="sf-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-18 8V8a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+                                />
+                            </svg>
                             <input
                                 id="email"
                                 type="email"
-                                className={`sf-input ${errores.correo ? "sf-input--error" : ""
-                                    }`}
-                                placeholder="correo@ejemplo.com"
+                                className={`sf-input ${errores.correo ? "sf-input--error" : ""}`}
+                                placeholder="tucorreo@duoc.cl"
                                 value={correo}
                                 onChange={(e) => setCorreo(e.target.value)}
                                 onBlur={() => {
                                     const error = validarCampo("correo");
-                                    if (error)
-                                        setErrores((p) => ({ ...p, correo: error }));
+                                    if (error) setErrores((p) => ({ ...p, correo: error }));
                                 }}
                                 aria-invalid={!!errores.correo}
                                 aria-describedby={errores.correo ? "correo-error" : undefined}
@@ -127,9 +141,9 @@ export default function InicioSesion() {
                             />
                         </div>
                         {errores.correo && (
-                            <p id="correo-error" className="sf-field-error">
+                            <span id="correo-error" className="sf-field-error">
                                 {errores.correo}
-                            </p>
+                            </span>
                         )}
                     </div>
 
@@ -139,46 +153,43 @@ export default function InicioSesion() {
                             Contraseña
                         </label>
                         <div className="sf-input-wrapper">
+                            <svg className="sf-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M12 11c1.657 0 3-1.343 3-3V6a3 3 0 10-6 0v2c0 1.657 1.343 3 3 3zm-6 2a6 6 0 0112 0v3a2 2 0 01-2 2H8a2 2 0 01-2-2v-3z"
+                                />
+                            </svg>
                             <input
                                 id="password"
                                 type={mostrarContrasenia ? "text" : "password"}
-                                className={`sf-input ${errores.contrasenia ? "sf-input--error" : ""
-                                    }`}
+                                className={`sf-input ${errores.contrasenia ? "sf-input--error" : ""}`}
                                 placeholder="4 a 20 caracteres"
                                 value={contrasenia}
                                 onChange={(e) => setContrasenia(e.target.value)}
                                 onBlur={() => {
                                     const error = validarCampo("contrasenia");
-                                    if (error)
-                                        setErrores((p) => ({
-                                            ...p,
-                                            contrasenia: error,
-                                        }));
+                                    if (error) setErrores((p) => ({ ...p, contrasenia: error }));
                                 }}
                                 aria-invalid={!!errores.contrasenia}
-                                aria-describedby={
-                                    errores.contrasenia ? "pass-error" : undefined
-                                }
+                                aria-describedby={errores.contrasenia ? "pass-error" : undefined}
                                 disabled={enviando}
                             />
                             <button
                                 type="button"
                                 className="sf-input-action"
                                 onClick={() => setMostrarContrasenia(!mostrarContrasenia)}
-                                aria-label={
-                                    mostrarContrasenia
-                                        ? "Ocultar contraseña"
-                                        : "Mostrar contraseña"
-                                }
+                                aria-label={mostrarContrasenia ? "Ocultar contraseña" : "Mostrar contraseña"}
                                 disabled={enviando}
                             >
                                 {mostrarContrasenia ? "Ocultar" : "Ver"}
                             </button>
                         </div>
                         {errores.contrasenia && (
-                            <p id="pass-error" className="sf-field-error">
+                            <span id="pass-error" className="sf-field-error">
                                 {errores.contrasenia}
-                            </p>
+                            </span>
                         )}
                     </div>
 

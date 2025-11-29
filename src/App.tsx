@@ -19,17 +19,6 @@ import PedidosAdmin from "./pages/Admin/PedidosAdmin";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import MensajesAdmin from "./pages/Admin/MensajesAdmin";
-<<<<<<< HEAD
-=======
-import MensajesSoportePage from "./pages/soporte/MensajesSoportePage";
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { ProductsProvider } from './context/ProductsContext';
-import { StockProvider } from './context/StockContext';
-import { CartProvider } from './context/CartContext';
-import { OrdersProvider } from './context/OrdersContext';
-import { ReportsProvider } from './context/ReportsContext';
-import { MessagesProvider } from './context/MessagesContext';
->>>>>>> 588bc5f64a8e63b43f8dc31a68252cb68c6566d3
 
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ProductsProvider } from "./context/ProductsContext";
@@ -45,7 +34,7 @@ import Checkout from "./pages/Carrito/Checkout";
 import DetalleCompra from "./pages/Perfil/DetalleCompra";
 
 
-// 🔐 Ruta protegida genérica basada SOLO en el contexto
+//Ruta protegida genérica basada SOLO en el contexto
 function RutaProtegida({ children }: { children: React.ReactNode }) {
   const { sesion } = useAuth();
 
@@ -69,7 +58,6 @@ export default function App() {
         <StockProvider>
           <CartProvider>
             <OrdersProvider>
-<<<<<<< HEAD
               <ReportsProvider>
                 <MessagesProvider>
                   <ProveedorTema>
@@ -90,7 +78,7 @@ export default function App() {
                           }
                         />
 
-                        {/* 🔐 Rutas de perfil protegidas */}
+                        {/* Rutas de perfil protegidas */}
                         <Route
                           path="DetalleCompra/:id"
                           element={
@@ -135,7 +123,6 @@ export default function App() {
                           <Route path="Productos" element={<AdminProductos />} />
                           <Route path="Usuarios" element={<UsuariosAdmin />} />
                           <Route path="Pedidos" element={<PedidosAdmin />} />
-                          <Route path="Reportes" element={<ReportesAdmin />} />
                           <Route path="Mensajes" element={<MensajesAdmin />} />
                         </Route>
 
@@ -145,39 +132,6 @@ export default function App() {
                   </ProveedorTema>
                 </MessagesProvider>
               </ReportsProvider>
-=======
-            <ReportsProvider>
-            <MessagesProvider>
-            <ProveedorTema>
-              <Routes>
-                <Route path="/" element={<SitioLayout />}>
-                  <Route index element={<Inicio />} />
-                  <Route path="/productos" element={<Productos />} />
-                  <Route path="/productos/:slug" element={<ProductoDetalle/>} />
-                  <Route path="Checkout" element={<Checkout />} />
-                  <Route path="Registro" element={<Registro />} />
-                  <Route path="InicioSesion" element={<InicioSesion />} />
-                  <Route path="Perfil" element={<Pageperfil />} />
-                  <Route path="MisCompras" element={<MisCompras />} />
-                  <Route path="Contacto" element={<Contacto />} />
-                  <Route path="Carrito" element={<Carrito />} />
-                  <Route path="/Mensajes" element={<MensajesSoportePage />} />
-                  <Route path="Nosotros" element={<Nosotros />} />
-                  <Route path="Blog" element={<Blog />} />
-                  <Route path="Admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-                    <Route index element={<AdminDashboard />} />
-                    <Route path="Productos" element={<AdminProductos />} />
-                    <Route path="Usuarios" element={<UsuariosAdmin />} />
-                    <Route path="Pedidos" element={<PedidosAdmin />} />
-                    <Route path="Mensajes" element={<MensajesAdmin />} />
-                  </Route>
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Route>
-              </Routes>
-            </ProveedorTema>
-            </MessagesProvider>
-            </ReportsProvider>
->>>>>>> 588bc5f64a8e63b43f8dc31a68252cb68c6566d3
             </OrdersProvider>
           </CartProvider>
         </StockProvider>

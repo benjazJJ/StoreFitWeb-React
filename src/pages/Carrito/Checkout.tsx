@@ -1,17 +1,12 @@
+// src/pages/Carrito/Checkout.tsx
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { CarritoItem } from "../../types/Producto";
 import type { Carrito as CarritoType } from "../../api/catalogApi";
-import type { CompraItem } from "../../api/ordersApi";
-import {
-  obtenerCarrito,
-  limpiarCarrito,
-} from "../../api/catalogApi";
-import {
-  crearCompra,
-  reservarStock,
-  type StockReservaItem,
-} from "../../api/ordersApi";
+import type { CompraItem, StockReservaItem } from "../../api/ordersApi";
+import { obtenerCarrito, limpiarCarrito } from "../../api/catalogApi";
+import { crearCompra, reservarStock } from "../../api/ordersApi";
 import { formatearCLP } from "../../utils/formatoMoneda";
 import { alertError, alertSuccess } from "../../utils/alerts";
 import { useAuth } from "../../context/AuthContext";
@@ -26,7 +21,7 @@ type DatosEnvio = {
   region: string;
 };
 
-type MetodoPago = "DEBITO" | "CREDITO" | "TRANSFERENCIA";
+type MetodoPago = "tarjeta" | "transferencia" | "paypal";
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -36,6 +31,8 @@ export default function Checkout() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [procesando, setProcesando] = useState(false);
+
+  const [metodoPago, setMetodoPago] = useState<MetodoPago>("tarjeta");
 
   const [datosEnvio, setDatosEnvio] = useState<DatosEnvio>({
     nombre: "",
@@ -47,13 +44,9 @@ export default function Checkout() {
     region: "",
   });
 
-  const [metodoPago, setMetodoPago] =
-    useState<MetodoPago>("DEBITO");
-
-  // 🔹 Prefill datos desde la sesión (nombre y correo)
+  // Prefill datos de envío desde la sesión
   useEffect(() => {
     if (!sesion) return;
-
     setDatosEnvio((prev) => ({
       ...prev,
       nombre: sesion.nombre || "",
@@ -61,7 +54,7 @@ export default function Checkout() {
     }));
   }, [sesion]);
 
-  // 🔹 Cargar carrito (y validar sesión)
+  // Cargar carrito desde orders-service usando la sesión
   useEffect(() => {
     const cargarCarrito = async () => {
       try {
@@ -70,13 +63,15 @@ export default function Checkout() {
 
         if (!sesion) {
           setError("No autenticado");
-          navigate("/InicioSesion", {
-            state: { from: "/Checkout" },
-          });
+          navigate("/InicioSesion", { state: { from: "/Checkout" } });
           return;
         }
 
-        const data = await obtenerCarrito();
+        const data = await obtenerCarrito({
+          rut: sesion.rut,
+          rol: sesion.rolNombre || "CLIENTE",
+        });
+
         setCarrito(data);
 
         if (!data || data.items.length === 0) {
@@ -85,9 +80,7 @@ export default function Checkout() {
         }
       } catch (err) {
         setError(
-          err instanceof Error
-            ? err.message
-            : "Error al cargar carrito"
+          err instanceof Error ? err.message : "Error al cargar carrito"
         );
         console.error("Error:", err);
       } finally {
@@ -104,7 +97,7 @@ export default function Checkout() {
       return;
     }
 
-    // Validar datos de envío básicos
+    // Validar datos básicos de envío
     if (
       !datosEnvio.nombre ||
       !datosEnvio.correo ||
@@ -112,8 +105,8 @@ export default function Checkout() {
       !datosEnvio.direccion
     ) {
       await alertError(
-        "Campos requeridos",
-        "Por favor completa todos los datos de envío"
+        "Datos incompletos",
+        "Completa al menos nombre, correo, teléfono y dirección."
       );
       return;
     }
@@ -122,40 +115,53 @@ export default function Checkout() {
       setProcesando(true);
 
       const userRut = sesion?.rut;
+      const userRol = sesion?.rolNombre || "CLIENTE";
+
       if (!userRut) {
         await alertError(
           "Error",
           "No se encontró la sesión del usuario. Inicia sesión nuevamente."
         );
-        navigate("/InicioSesion", {
-          state: { from: "/Checkout" },
-        });
+        navigate("/InicioSesion", { state: { from: "/Checkout" } });
         return;
       }
 
-      // 1. Reservar stock en catalog-service
-      const stockItems: StockReservaItem[] = carrito.items.map(
-        (item: CarritoItem) => ({
-          productoId: item.productoId,
-          talla: item.talla,
-          cantidad: item.cantidad,
-        })
-      );
+      // 1. Preparar items para reservar stock en catalog-service
+      const stockItems: StockReservaItem[] = carrito.items
+        .map((item) => {
+          // productoId puede venir como "2/2001" (categoria/producto) o "2001"
+          const parts = String(item.productoId).split("/");
+          const idProductoStr = parts.length === 2 ? parts[1] : parts[0];
+          const idProducto = Number(idProductoStr);
 
+          return {
+            idProducto: Number.isNaN(idProducto) ? 0 : idProducto,
+            cantidad: item.cantidad,
+          };
+        })
+        .filter((it) => it.idProducto > 0 && it.cantidad > 0);
+
+      if (stockItems.length === 0) {
+        await alertError(
+          "Error",
+          "No se pudo preparar la reserva de stock. Revisa el carrito."
+        );
+        return;
+      }
+
+      // 2. Reservar stock en catalog-service
       await reservarStock(stockItems);
 
-      // 2. Crear compra en orders-service
-      const compraItems: CompraItem[] = carrito.items.map(
-        (item) => ({
-          id: item.productoId,
-          nombre: item.nombre,
-          cantidad: item.cantidad,
-          talla: item.talla,
-          precioUnitario: item.precio,
-          subtotal: item.precio * item.cantidad,
-          imagen: item.imagen,
-        })
-      );
+      // 3. Crear compra en orders-service
+      const compraItems: CompraItem[] = carrito.items.map((item) => ({
+        id: item.productoId,
+        nombre: item.nombre,
+        cantidad: item.cantidad,
+        talla: item.talla,
+        precioUnitario: item.precio,
+        subtotal: item.precio * item.cantidad,
+        imagen: item.imagen,
+      }));
 
       const compra = await crearCompra({
         rutUsuario: userRut,
@@ -165,25 +171,27 @@ export default function Checkout() {
         direccion: datosEnvio.direccion,
         region: datosEnvio.region,
         comuna: datosEnvio.comuna,
-        metodoPago: metodoPago,
+        metodoPago,
         total: carrito.total,
         items: compraItems,
       });
 
-      // 3. Limpiar carrito
-      await limpiarCarrito();
+      // 4. Limpiar carrito para este usuario
+      await limpiarCarrito({ rut: userRut, rol: userRol });
 
+      // 5. Mostrar éxito
       await alertSuccess(
-        "Compra realizada",
-        `Tu compra #${compra.id} fue creada correctamente`
+        "¡Compra exitosa!",
+        `Número de orden: ${compra.idCompra}`
       );
-      navigate("/MisCompras");
+
+      // 6. Redirigir a detalle de compra / MisCompras
+      navigate(`/MisCompras/${compra.idCompra}`);
     } catch (err) {
-      console.error("Error al procesar pago:", err);
-      await alertError(
-        "Error",
-        "No se pudo procesar tu compra. Intenta nuevamente."
-      );
+      const errorMsg =
+        err instanceof Error ? err.message : "Error desconocido";
+      await alertError("Error en el pago", errorMsg);
+      console.error("Error:", err);
     } finally {
       setProcesando(false);
     }
@@ -191,45 +199,54 @@ export default function Checkout() {
 
   if (cargando) {
     return (
-      <div className="container py-5">
-        <h3>Cargando checkout...</h3>
-      </div>
+      <main className="container py-4">
+        <div className="text-center text-muted py-5">
+          <p>Cargando checkout...</p>
+        </div>
+      </main>
     );
   }
 
   if (error) {
     return (
-      <div className="container py-5">
-        <h3>Error en checkout</h3>
-        <p>{error}</p>
-      </div>
+      <main className="container py-4">
+        <div className="text-center text-danger py-5">
+          <p className="mb-3">{error || "Carrito no disponible"}</p>
+          <button
+            className="btn btn-outline-secondary"
+            onClick={() => navigate("/Carrito")}
+          >
+            Volver al carrito
+          </button>
+        </div>
+      </main>
     );
   }
 
   if (!carrito) {
     return (
-      <div className="container py-5">
-        <h3>No hay carrito para procesar</h3>
-      </div>
+      <main className="container py-4">
+        <div className="text-center py-5">
+          <p>No hay carrito para procesar.</p>
+        </div>
+      </main>
     );
   }
 
+  const items = carrito.items || [];
+
   return (
-    <div className="container py-4">
+    <main className="container py-4">
       <h2 className="mb-4">Checkout</h2>
       <div className="row">
         {/* Datos de envío */}
         <div className="col-md-7">
           <div className="card mb-4">
-            <div className="card-header fw-bold">
-              Datos de envío
-            </div>
+            <div className="card-header fw-bold">Datos de envío</div>
             <div className="card-body">
               <div className="row g-3">
                 <div className="col-md-6">
-                  <label className="form-label fw-bold">
-                    Nombre *
-                  </label>
+                  <label className="form-label fw-bold">Nombre *</label>
                   <input
                     type="text"
                     className="form-control"
@@ -240,14 +257,11 @@ export default function Checkout() {
                         nombre: e.target.value,
                       })
                     }
-                    placeholder="Nombre"
                   />
                 </div>
 
                 <div className="col-md-6">
-                  <label className="form-label fw-bold">
-                    Apellidos
-                  </label>
+                  <label className="form-label fw-bold">Apellidos</label>
                   <input
                     type="text"
                     className="form-control"
@@ -258,14 +272,11 @@ export default function Checkout() {
                         apellidos: e.target.value,
                       })
                     }
-                    placeholder="Apellidos"
                   />
                 </div>
 
                 <div className="col-md-6">
-                  <label className="form-label fw-bold">
-                    Correo *
-                  </label>
+                  <label className="form-label fw-bold">Correo *</label>
                   <input
                     type="email"
                     className="form-control"
@@ -276,14 +287,11 @@ export default function Checkout() {
                         correo: e.target.value,
                       })
                     }
-                    placeholder="correo@ejemplo.com"
                   />
                 </div>
 
                 <div className="col-md-6">
-                  <label className="form-label fw-bold">
-                    Teléfono *
-                  </label>
+                  <label className="form-label fw-bold">Teléfono *</label>
                   <input
                     type="text"
                     className="form-control"
@@ -294,14 +302,11 @@ export default function Checkout() {
                         telefono: e.target.value,
                       })
                     }
-                    placeholder="+56 9 1234 5678"
                   />
                 </div>
 
                 <div className="col-12">
-                  <label className="form-label fw-bold">
-                    Dirección *
-                  </label>
+                  <label className="form-label fw-bold">Dirección *</label>
                   <input
                     type="text"
                     className="form-control"
@@ -317,9 +322,7 @@ export default function Checkout() {
                 </div>
 
                 <div className="col-md-6">
-                  <label className="form-label fw-bold">
-                    Región
-                  </label>
+                  <label className="form-label fw-bold">Región</label>
                   <input
                     type="text"
                     className="form-control"
@@ -330,14 +333,11 @@ export default function Checkout() {
                         region: e.target.value,
                       })
                     }
-                    placeholder="Región"
                   />
                 </div>
 
                 <div className="col-md-6">
-                  <label className="form-label fw-bold">
-                    Comuna
-                  </label>
+                  <label className="form-label fw-bold">Comuna</label>
                   <input
                     type="text"
                     className="form-control"
@@ -348,14 +348,11 @@ export default function Checkout() {
                         comuna: e.target.value,
                       })
                     }
-                    placeholder="Comuna"
                   />
                 </div>
 
                 <div className="col-12">
-                  <label className="form-label fw-bold">
-                    Método de pago
-                  </label>
+                  <label className="form-label fw-bold">Método de pago</label>
                   <select
                     className="form-select"
                     value={metodoPago}
@@ -363,13 +360,11 @@ export default function Checkout() {
                       setMetodoPago(e.target.value as MetodoPago)
                     }
                   >
-                    <option value="DEBITO">Tarjeta de débito</option>
-                    <option value="CREDITO">
-                      Tarjeta de crédito
-                    </option>
-                    <option value="TRANSFERENCIA">
+                    <option value="tarjeta">Tarjeta (crédito / débito)</option>
+                    <option value="transferencia">
                       Transferencia bancaria
                     </option>
+                    <option value="paypal">PayPal (simulado)</option>
                   </select>
                 </div>
               </div>
@@ -380,11 +375,9 @@ export default function Checkout() {
         {/* Resumen del pedido */}
         <div className="col-md-5">
           <div className="card mb-4">
-            <div className="card-header fw-bold">
-              Resumen de compra
-            </div>
+            <div className="card-header fw-bold">Resumen de compra</div>
             <div className="card-body">
-              {carrito.items.map((item) => (
+              {items.map((item) => (
                 <div
                   key={`${item.productoId}-${item.talla}`}
                   className="d-flex justify-content-between align-items-center mb-2"
@@ -394,14 +387,11 @@ export default function Checkout() {
                       {item.nombre} ({item.talla})
                     </div>
                     <small className="text-muted">
-                      {item.cantidad} x{" "}
-                      {formatearCLP(item.precio)}
+                      {item.cantidad} x {formatearCLP(item.precio)}
                     </small>
                   </div>
                   <div className="fw-bold">
-                    {formatearCLP(
-                      item.precio * item.cantidad
-                    )}
+                    {formatearCLP(item.precio * item.cantidad)}
                   </div>
                 </div>
               ))}
@@ -420,14 +410,12 @@ export default function Checkout() {
                 onClick={handleProcesarPago}
                 disabled={procesando}
               >
-                {procesando
-                  ? "Procesando pago..."
-                  : "Confirmar pago"}
+                {procesando ? "Procesando pago..." : "Confirmar pago"}
               </button>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

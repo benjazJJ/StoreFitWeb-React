@@ -14,7 +14,7 @@ import { useAuth } from "../../context/AuthContext";
 
 export default function Carrito() {
   const navigate = useNavigate();
-  const { sesion } = useAuth(); // por si quieres mostrar algo del usuario luego
+  const { sesion } = useAuth();
 
   const [carrito, setCarrito] = useState<CarritoType | null>(null);
   const [itemsDetallados, setItemsDetallados] = useState<CarritoItem[]>([]);
@@ -22,13 +22,28 @@ export default function Carrito() {
   const [error, setError] = useState<string | null>(null);
   const [actualizando, setActualizando] = useState(false);
 
-  // Cargar carrito
+  // Helper para construir objeto usuario para las APIs
+  const usuarioHeaders =
+    sesion != null
+      ? { rut: sesion.rut, rol: sesion.rolNombre }
+      : undefined;
+
+  // Cargar carrito cuando tengamos sesión
   useEffect(() => {
     const cargarCarrito = async () => {
       try {
         setCargando(true);
         setError(null);
-        const data = await obtenerCarrito();
+
+        // Si no hay sesión, mostramos carrito vacío
+        if (!sesion) {
+          setCarrito(null);
+          setItemsDetallados([]);
+          setCargando(false);
+          return;
+        }
+
+        const data = await obtenerCarrito(usuarioHeaders);
         setCarrito(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error al cargar carrito");
@@ -39,7 +54,7 @@ export default function Carrito() {
     };
 
     cargarCarrito();
-  }, []);
+  }, [sesion]); // 👈 se recarga cuando la sesión esté lista
 
   // Enriquecer items con datos reales desde catalog-service
   useEffect(() => {
@@ -103,7 +118,12 @@ export default function Carrito() {
 
     try {
       setActualizando(true);
-      const nuevoCarrito = await actualizarItemCarrito(productoId, cantidad, talla);
+      const nuevoCarrito = await actualizarItemCarrito(
+        productoId,
+        cantidad,
+        talla,
+        usuarioHeaders
+      );
       setCarrito(nuevoCarrito);
     } catch (err) {
       await alertError(
@@ -119,7 +139,11 @@ export default function Carrito() {
   const handleRemover = async (productoId: string, talla: Talla) => {
     try {
       setActualizando(true);
-      const nuevoCarrito = await removerDelCarrito(productoId, talla);
+      const nuevoCarrito = await removerDelCarrito(
+        productoId,
+        talla,
+        usuarioHeaders
+      );
       setCarrito(nuevoCarrito);
     } catch (err) {
       await alertError(
@@ -137,7 +161,7 @@ export default function Carrito() {
 
     try {
       setActualizando(true);
-      await limpiarCarrito();
+      await limpiarCarrito(usuarioHeaders);
       setCarrito(null);
       setItemsDetallados([]);
       await alertSuccess("Carrito vaciado");
@@ -171,7 +195,6 @@ export default function Carrito() {
     // Si hay sesión, vamos directo al checkout
     navigate("/Checkout");
   };
-
 
   if (cargando) {
     return (

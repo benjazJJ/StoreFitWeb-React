@@ -36,6 +36,7 @@ export type Producto = {
 
 export type ProductoListaResponse = {
     content: Producto[];
+    items?: Producto[];
     totalElements: number;
     totalPages: number;
     currentPage: number;
@@ -60,7 +61,8 @@ export type Carrito = {
     updatedAt: string;
 };
 
-// Helpers para transformar DTOs del backend (catalog-service) a los tipos del frontend
+// ===== Helpers de transformación =====
+
 function transformarProductoDto(dto: any): Producto {
     const idProducto = dto?.id?.idProducto ?? dto?.idProducto ?? dto?.id ?? null;
     const id = idProducto != null ? String(idProducto) : String(dto?.id ?? "");
@@ -91,7 +93,8 @@ function transformarProductoDto(dto: any): Producto {
 
     // stock base razonable (si viene 0 o null, usamos 10)
     const stockBaseRaw = Number(dto?.stock ?? 10);
-    const stockBase = Number.isNaN(stockBaseRaw) || stockBaseRaw <= 0 ? 10 : stockBaseRaw;
+    const stockBase =
+        Number.isNaN(stockBaseRaw) || stockBaseRaw <= 0 ? 10 : stockBaseRaw;
 
     // Caso típico: un registro = una talla
     if (dto?.talla) {
@@ -108,7 +111,8 @@ function transformarProductoDto(dto: any): Producto {
         dto.tallas.forEach((t: any) => {
             const tallaStr = String(t.talla).toUpperCase();
             const stockRaw = Number(t.stock ?? stockBase);
-            const stock = Number.isNaN(stockRaw) || stockRaw <= 0 ? stockBase : stockRaw;
+            const stock =
+                Number.isNaN(stockRaw) || stockRaw <= 0 ? stockBase : stockRaw;
             const precioTalla = Number(t.precio ?? precio) || precio;
 
             tallas.push({
@@ -119,7 +123,7 @@ function transformarProductoDto(dto: any): Producto {
         });
     }
 
-    // 🔒 SEGURO: si el backend no mandó tallas, inventamos una "M" con stock
+    // SEGURO: si el backend no mandó tallas, inventamos una "M" con stock
     if (tallas.length === 0) {
         tallas.push({
             talla: "M",
@@ -142,9 +146,7 @@ function transformarProductoDto(dto: any): Producto {
     };
 }
 
-
-
-// Helper: headers por defecto para comunicarse con catalog-service
+// Helper: headers por defecto para catalog-service (usa localStorage)
 function defaultHeaders(contentTypeJson: boolean = false): Record<string, string> {
     const token = localStorage.getItem("token");
     const userRut = localStorage.getItem("userRut") || "anonymous";
@@ -155,6 +157,26 @@ function defaultHeaders(contentTypeJson: boolean = false): Record<string, string
     };
     if (token) headers["Authorization"] = `Bearer ${token}`;
     if (contentTypeJson) headers["Content-Type"] = "application/json";
+    return headers;
+}
+
+
+type UsuarioHeaders = { rut: string; rol: string };
+
+function buildUserHeaders(
+    usuario?: UsuarioHeaders,
+    contentTypeJson: boolean = false
+): Record<string, string> {
+    const rut = usuario?.rut || localStorage.getItem("userRut") || "";
+    const rol = usuario?.rol || localStorage.getItem("userRole") || "CLIENTE";
+    const token = localStorage.getItem("token") || "";
+
+    const headers: Record<string, string> = {
+        "X-User-Rut": rut,
+        "X-User-Rol": rol,
+    };
+    if (contentTypeJson) headers["Content-Type"] = "application/json";
+    if (token) headers["Authorization"] = `Bearer ${token}`;
     return headers;
 }
 
@@ -172,25 +194,28 @@ function transformarListaProductosDto(raw: any): ProductoListaResponse {
     }
 
     const DESCRIPCIONES: Record<string, string> = {
-        "StoreFit XFITRX": "Polera deportiva de alto rendimiento, ideal para entrenamiento funcional y running.",
-        "StoreFit WARMGLIDE": "Polerón térmico para días fríos, comodidad y estilo en cualquier ocasión.",
-        "StoreFit FLEXRUN": "Buzo flexible y ligero, perfecto para actividades al aire libre y fitness.",
-        "StoreFit FITQUEEN": "Conjunto femenino diseñado para máxima comodidad y elegancia deportiva.",
+        "StoreFit XFITRX":
+            "Polera deportiva de alto rendimiento, ideal para entrenamiento funcional y running.",
+        "StoreFit WARMGLIDE":
+            "Polerón térmico para días fríos, comodidad y estilo en cualquier ocasión.",
+        "StoreFit FLEXRUN":
+            "Buzo flexible y ligero, perfecto para actividades al aire libre y fitness.",
+        "StoreFit FITQUEEN":
+            "Conjunto femenino diseñado para máxima comodidad y elegancia deportiva.",
     };
 
-    const grouped: Producto[] = Object.values(groups).map(group => {
-        // tomar el primer como representante
+    const grouped: Producto[] = Object.values(groups).map((group) => {
         const first = group[0];
-        // buscar la primera imagen real de la base de datos
-        let principalImg = group.find(g => g.imagenes && g.imagenes[0]?.url)?.imagenes[0]?.url;
-        if (!principalImg) principalImg = '/img/placeholder.svg';
-        // precio mínimo como atractivo
-        const precio = Math.min(...group.map(g => g.precio || Number.MAX_SAFE_INTEGER));
-        // descripción inventada
-        const descripcion = DESCRIPCIONES[first.nombre] || "Producto deportivo StoreFit.";
+        let principalImg = group.find(
+            (g) => g.imagenes && g.imagenes[0]?.url
+        )?.imagenes[0]?.url;
+        if (!principalImg) principalImg = "/img/placeholder.svg";
+        const precio = Math.min(...group.map((g) => g.precio || Number.MAX_SAFE_INTEGER));
+        const descripcion =
+            DESCRIPCIONES[first.nombre] || "Producto deportivo StoreFit.";
         return {
             ...first,
-            imagenes: [{ id: '0', url: principalImg, principal: true, orden: 0 }],
+            imagenes: [{ id: "0", url: principalImg, principal: true, orden: 0 }],
             precio: precio === Number.MAX_SAFE_INTEGER ? first.precio : precio,
             descripcion,
             tallas: [],
@@ -206,13 +231,11 @@ function transformarListaProductosDto(raw: any): ProductoListaResponse {
     };
 }
 
-// Transformar DTO de carrito (tolerante a varias formas de respuesta del backend)
 function transformarCarritoDto(dto: any): Carrito {
     const itemsRaw = dto?.items ?? dto?.detalles ?? dto?.lineItems ?? [];
 
     const items: CarritoItem[] = Array.isArray(itemsRaw)
         ? itemsRaw.map((it: any) => {
-            // producto anidado si existe
             const producto =
                 it.producto ??
                 it.productoDTO ??
@@ -220,7 +243,6 @@ function transformarCarritoDto(dto: any): Carrito {
                 it.productoData ??
                 it;
 
-            // armar id compuesto categoria/producto si se puede
             const idCategoria =
                 it.idCategoria ??
                 producto?.idCategoria ??
@@ -237,20 +259,16 @@ function transformarCarritoDto(dto: any): Carrito {
                     ? `${idCategoria}/${idProducto}`
                     : String(idProducto ?? it.productoId ?? "");
 
-            // nombre base a partir de marca + modelo
             const nombreBaseRaw = `${producto?.marca ?? ""} ${producto?.modelo ?? ""
                 }`.trim();
-            // si no hay marca/modelo, usamos "Producto {id}"
             const nombreBase = nombreBaseRaw || `Producto ${productoId}`;
 
-            // nombre final con prioridades
             const nombre =
                 it.nombreProducto ??
                 it.nombre ??
                 producto?.nombre ??
                 nombreBase;
 
-            // precio unitario
             const precioUnit =
                 Number(
                     it.precioUnitario ??
@@ -289,21 +307,26 @@ function transformarCarritoDto(dto: any): Carrito {
 
     return {
         id: String(dto?.id ?? dto?.carritoId ?? dto?.idCarrito ?? ""),
-        usuarioId: String(dto?.usuarioId ?? dto?.userId ?? dto?.rutUsuario ?? ""),
+        usuarioId: String(
+            dto?.usuarioId ?? dto?.userId ?? dto?.rutUsuario ?? ""
+        ),
         items,
         total,
         createdAt:
-            dto?.createdAt ?? dto?.createdAtMillis ?? dto?.fechaCreacion ?? "",
+            dto?.createdAt ??
+            dto?.createdAtMillis ??
+            dto?.fechaCreacion ??
+            "",
         updatedAt:
-            dto?.updatedAt ?? dto?.updatedAtMillis ?? dto?.fechaActualizacion ?? "",
+            dto?.updatedAt ??
+            dto?.updatedAtMillis ??
+            dto?.fechaActualizacion ??
+            "",
     };
 }
 
+// ================== PRODUCTOS ==================
 
-
-/**
- * Obtener lista de productos con paginación y filtros
- */
 export async function obtenerProductos(
     page: number = 0,
     size: number = 12,
@@ -322,9 +345,12 @@ export async function obtenerProductos(
             params.append("busqueda", busqueda);
         }
 
-        const res = await fetchConErrores(`${CATALOG_URL}/productos?${params.toString()}`, {
-            headers: defaultHeaders()
-        });
+        const res = await fetchConErrores(
+            `${CATALOG_URL}/productos?${params.toString()}`,
+            {
+                headers: defaultHeaders(),
+            }
+        );
 
         if (!res.ok) {
             const text = await res.text().catch(() => "");
@@ -338,13 +364,10 @@ export async function obtenerProductos(
     }
 }
 
-/**
- * Obtener un producto específico por ID
- */
 export async function obtenerProductoPorId(id: string): Promise<Producto> {
     try {
         const res = await fetchConErrores(`${CATALOG_URL}/productos/${id}`, {
-            headers: defaultHeaders()
+            headers: defaultHeaders(),
         });
 
         if (!res.ok) {
@@ -355,32 +378,41 @@ export async function obtenerProductoPorId(id: string): Promise<Producto> {
         const raw = await res.json().catch(() => null);
         const producto = transformarProductoDto(raw);
 
-        // Para detalle: obtener todas las variantes que compartan marca+modelo
-        // (backend no expone agrupación por modelo), así que pedimos lista completa
         try {
-            const allRes = await fetchConErrores(`${CATALOG_URL}/productos?size=1000`, { headers: defaultHeaders() });
+            const allRes = await fetchConErrores(
+                `${CATALOG_URL}/productos?size=1000`,
+                { headers: defaultHeaders() }
+            );
             const allRaw = await allRes.json().catch(() => []);
             const all = Array.isArray(allRaw) ? allRaw : allRaw?.content ?? [];
             const variantes = (all as any[])
                 .filter((v: any) => {
-                    const vNombre = `${v?.marca ?? ''} ${v?.modelo ?? ''}`.trim();
+                    const vNombre = `${v?.marca ?? ""} ${v?.modelo ?? ""}`.trim();
                     return vNombre === producto.nombre;
                 })
                 .map((v: any) => ({
                     idCategoria: v?.id?.idCategoria ?? v?.idCategoria ?? null,
                     idProducto: v?.id?.idProducto ?? v?.idProducto ?? v?.id ?? null,
-                    color: v?.color ?? v?.descripcion ?? '',
-                    talla: v?.talla ?? '',
+                    color: v?.color ?? v?.descripcion ?? "",
+                    talla: v?.talla ?? "",
                     stock: Number(v?.stock ?? 0),
-                    precio: Number(v?.precio ?? v?.precioUnitario ?? (producto.precio || 0)),
-                    imageUrl: v?.imageUrl ?? (Array.isArray(v?.imagenes) && v.imagenes[0]?.url) ?? '/img/placeholder.svg'
+                    precio:
+                        Number(v?.precio ?? v?.precioUnitario ?? (producto.precio ?? 0)) ||
+                        producto.precio ||
+                        0,
+                    imageUrl:
+                        v?.imageUrl ??
+                        (Array.isArray(v?.imagenes) && v.imagenes[0]?.url) ??
+                        "/img/placeholder.svg",
                 }));
             producto.variantes = variantes;
 
-            // Construir lista de tallas a partir de las variantes (agrupar por talla)
             try {
                 const tallaOrder: Talla[] = ["XS", "S", "M", "L", "XL"];
-                const map: Record<string, { talla: Talla; stock: number; precio: number }> = {};
+                const map: Record<
+                    string,
+                    { talla: Talla; stock: number; precio: number }
+                > = {};
 
                 for (const v of variantes) {
                     const t = String(v.talla || "").toUpperCase();
@@ -388,8 +420,10 @@ export async function obtenerProductoPorId(id: string): Promise<Producto> {
                     const tallaKey = t as Talla;
 
                     const stockRaw = Number(v.stock ?? 1);
-                    const stockVar = Number.isNaN(stockRaw) || stockRaw <= 0 ? 1 : stockRaw;
-                    const precioVar = Number(v.precio ?? producto.precio ?? 0) || producto.precio;
+                    const stockVar =
+                        Number.isNaN(stockRaw) || stockRaw <= 0 ? 1 : stockRaw;
+                    const precioVar =
+                        Number(v.precio ?? producto.precio ?? 0) || producto.precio;
 
                     if (!map[tallaKey]) {
                         map[tallaKey] = {
@@ -414,11 +448,10 @@ export async function obtenerProductoPorId(id: string): Promise<Producto> {
                     }));
 
                 producto.tallas = tallasArr.length > 0 ? tallasArr : producto.tallas;
-
-            } catch (e) {
-                // no bloquear si algo falla
+            } catch {
+                // ignorar error de tallas
             }
-        } catch (e) {
+        } catch {
             producto.variantes = [];
         }
 
@@ -428,13 +461,10 @@ export async function obtenerProductoPorId(id: string): Promise<Producto> {
     }
 }
 
-/**
- * Obtener categorías disponibles
- */
 export async function obtenerCategorias(): Promise<string[]> {
     try {
         const res = await fetchConErrores(`${CATALOG_URL}/categorias`, {
-            headers: defaultHeaders()
+            headers: defaultHeaders(),
         });
 
         if (!res.ok) {
@@ -443,25 +473,34 @@ export async function obtenerCategorias(): Promise<string[]> {
         }
 
         const raw = await res.json().catch(() => []);
-        if (Array.isArray(raw)) return raw.map((r) => (typeof r === 'string' ? r : r.nombreCategoria ?? r.nombre ?? String(r)));
-        // Si viene como objeto con clave "content"
-        if (raw?.content && Array.isArray(raw.content)) return raw.content.map((r: any) => (typeof r === 'string' ? r : r.nombreCategoria ?? r.nombre ?? String(r)));
+        if (Array.isArray(raw))
+            return raw.map((r) =>
+                typeof r === "string"
+                    ? r
+                    : r.nombreCategoria ?? r.nombre ?? String(r)
+            );
+        if (raw?.content && Array.isArray(raw.content))
+            return raw.content.map((r: any) =>
+                typeof r === "string"
+                    ? r
+                    : r.nombreCategoria ?? r.nombre ?? String(r)
+            );
         return [];
     } catch (error) {
         throw new Error(obtenerMensajeError(error));
     }
 }
 
-/**
- * Obtener stock disponible para un producto
- */
 export async function obtenerStockProducto(
     productoId: string
 ): Promise<Record<string, number>> {
     try {
-        const res = await fetchConErrores(`${CATALOG_URL}/productos/${productoId}/stock`, {
-            headers: defaultHeaders()
-        });
+        const res = await fetchConErrores(
+            `${CATALOG_URL}/productos/${productoId}/stock`,
+            {
+                headers: defaultHeaders(),
+            }
+        );
 
         if (!res.ok) {
             const text = await res.text().catch(() => "");
@@ -470,7 +509,7 @@ export async function obtenerStockProducto(
 
         const raw = await res.json().catch(() => null);
         if (raw == null) return { XS: 0, S: 0, M: 0, L: 0, XL: 0 };
-        if (typeof raw === 'number') {
+        if (typeof raw === "number") {
             return { XS: raw, S: raw, M: raw, L: raw, XL: raw };
         }
         if (Array.isArray(raw)) {
@@ -491,13 +530,19 @@ export async function obtenerStockProducto(
     }
 }
 
+// ================== CARRITO (orders-service) ==================
+
 /**
- * Obtener el carrito del usuario actual
+ * Obtener el carrito del usuario actual (o del usuario pasado por parámetro)
  */
-export async function obtenerCarrito(): Promise<Carrito> {
+export async function obtenerCarrito(
+    usuario?: UsuarioHeaders
+): Promise<Carrito> {
     try {
+        const headers = buildUserHeaders(usuario);
+
         const res = await fetchConErrores(`${ORDERS_URL}/carrito`, {
-            headers: defaultHeaders()
+            headers,
         });
 
         if (!res.ok) {
@@ -513,32 +558,37 @@ export async function obtenerCarrito(): Promise<Carrito> {
 }
 
 /**
- * Agregar un item al carrito
+ * Agregar un producto al carrito
  */
 export async function agregarAlCarrito(
     productoId: string,
     cantidad: number,
-    talla: Talla
-): Promise<Carrito> {
+    talla: Talla,
+    extra?: { nombre?: string; precio?: number },
+    usuario?: UsuarioHeaders
+) {
     try {
-        // Si productoId viene como 'categoria/id' (ruta compuesta), transformar a objeto
-        let payloadProductoId: any = productoId;
-        if (typeof productoId === 'string' && productoId.includes('/')) {
-            const [cat, pid] = productoId.split('/');
-            // En el backend Java el id puede venir como un objeto { id: { idCategoria, idProducto } }
-            payloadProductoId = { id: { idCategoria: isNaN(Number(cat)) ? cat : Number(cat), idProducto: isNaN(Number(pid)) ? pid : Number(pid) } };
+        const rut =
+            usuario?.rut || localStorage.getItem("userRut") || "";
+
+        if (!rut) {
+            throw new Error("No se encontró la sesión del usuario (rut vacío).");
         }
+
+        const headers = buildUserHeaders(usuario, true);
+
+        const body = {
+            productoId,
+            cantidad,
+            talla,
+            nombre: extra?.nombre,
+            precio: extra?.precio,
+        };
 
         const res = await fetchConErrores(`${ORDERS_URL}/carrito/items`, {
             method: "POST",
-            headers: {
-                ...defaultHeaders(true),
-            },
-            body: JSON.stringify({
-                productoId: payloadProductoId,
-                cantidad,
-                talla,
-            }),
+            headers,
+            body: JSON.stringify(body),
         });
 
         if (!res.ok) {
@@ -546,8 +596,7 @@ export async function agregarAlCarrito(
             throw new Error(`HTTP ${res.status} ${text}`);
         }
 
-        const raw = await res.json().catch(() => ({}));
-        return transformarCarritoDto(raw);
+        return res.json(); // carrito actualizado
     } catch (error) {
         throw new Error(obtenerMensajeError(error));
     }
@@ -559,18 +608,19 @@ export async function agregarAlCarrito(
 export async function actualizarItemCarrito(
     productoId: string,
     cantidad: number,
-    talla: Talla
+    talla: Talla,
+    usuario?: UsuarioHeaders
 ): Promise<Carrito> {
     try {
         const url = `${ORDERS_URL}/carrito/items?productoId=${encodeURIComponent(
             productoId
         )}`;
 
+        const headers = buildUserHeaders(usuario, true);
+
         const res = await fetchConErrores(url, {
             method: "PUT",
-            headers: {
-                ...defaultHeaders(true),
-            },
+            headers,
             body: JSON.stringify({
                 cantidad,
                 talla,
@@ -589,24 +639,24 @@ export async function actualizarItemCarrito(
     }
 }
 
-
 /**
  * Remover un item del carrito
  */
 export async function removerDelCarrito(
     productoId: string,
-    talla: Talla
+    talla: Talla,
+    usuario?: UsuarioHeaders
 ): Promise<Carrito> {
     try {
         const url = `${ORDERS_URL}/carrito/items?productoId=${encodeURIComponent(
             productoId
         )}&talla=${encodeURIComponent(talla)}`;
 
+        const headers = buildUserHeaders(usuario);
+
         const res = await fetchConErrores(url, {
             method: "DELETE",
-            headers: {
-                ...defaultHeaders(),
-            },
+            headers,
         });
 
         if (!res.ok) {
@@ -621,18 +671,18 @@ export async function removerDelCarrito(
     }
 }
 
-
 /**
  * Limpiar el carrito completo
  */
-
-export async function limpiarCarrito(): Promise<void> {
+export async function limpiarCarrito(
+    usuario?: UsuarioHeaders
+): Promise<void> {
     try {
+        const headers = buildUserHeaders(usuario);
+
         const res = await fetchConErrores(`${ORDERS_URL}/carrito`, {
             method: "DELETE",
-            headers: {
-                ...defaultHeaders(),
-            },
+            headers,
         });
 
         if (!res.ok) {
@@ -644,7 +694,6 @@ export async function limpiarCarrito(): Promise<void> {
     }
 }
 
-
 /**
  * Procesar pago del carrito
  */
@@ -653,16 +702,19 @@ export async function procesarPago(
     metodoPago: "tarjeta" | "transferencia" | "paypal"
 ): Promise<{ exito: boolean; numeroOrden?: string; error?: string }> {
     try {
-        const res = await fetchConErrores(`${ORDERS_URL}/carrito/${carritoId}/pagar`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-            body: JSON.stringify({
-                metodoPago,
-            }),
-        });
+        const res = await fetchConErrores(
+            `${ORDERS_URL}/carrito/${carritoId}/pagar`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+                body: JSON.stringify({
+                    metodoPago,
+                }),
+            }
+        );
 
         if (!res.ok) {
             const text = await res.text().catch(() => "");
