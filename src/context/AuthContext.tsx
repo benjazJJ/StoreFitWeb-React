@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { loginApi, LoginResponse } from "../api/authApi";
+import { loginApi } from "../api/authApi";
 import { registrarUsuarioApi, RegistroRequest } from "../api/authApi";
 
 // ===== Tipos para formularios/entidades de autenticación =====
@@ -36,6 +36,7 @@ export type Sesion = {
   nombre: string;
   rolNombre: "ADMIN" | "CLIENTE" | "SOPORTE";
   isAdmin: boolean;
+  token: string;
 };
 
 // ===== Forma del contexto expuesto a la app =====
@@ -59,8 +60,33 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Lista de usuarios en memoria (si la usas en algún admin local)
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  // Sesión actual (solo en memoria)
-  const [sesion, setSesion] = useState<Sesion | null>(null);
+
+  // Sesión actual, inicializada desde localStorage para sobrevivir al F5
+  const [sesion, setSesion] = useState<Sesion | null>(() => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const rut = localStorage.getItem("userRut");
+      const rol = localStorage.getItem("userRole") as
+        | Sesion["rolNombre"]
+        | null;
+      const correo = localStorage.getItem("userEmail");
+      const nombre = localStorage.getItem("userName");
+
+      if (token && rut && rol && correo && nombre) {
+        return {
+          token,
+          rut,
+          rolNombre: rol,
+          correo,
+          nombre,
+          isAdmin: rol === "ADMIN",
+        };
+      }
+    } catch {
+      // si localStorage falla, no restauramos sesión
+    }
+    return null;
+  });
 
   // -------- Registro SOLO contra microservicio --------
   const registrarUsuario = useCallback(
@@ -93,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
         }
 
-        // 🔹 NUEVO: también lo guardamos en memoria para el dashboard/admin
+        // También lo guardamos en memoria para el dashboard/admin
         setUsuarios((prev) => [
           ...prev,
           {
@@ -119,48 +145,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   // -------- Inicio de sesión SOLO contra microservicio --------
-  const iniciarSesion = useCallback(async ({ correo, password }: LoginForm) => {
-    try {
-      // Llama SIEMPRE al servicio de autenticación / usuarios
-      const resp: LoginResponse = await loginApi({
-        correo,
-        contrasenia: password,
-      });
+  const iniciarSesion = useCallback(
+    async (
+      input: LoginForm
+    ): Promise<{ ok: boolean; mensaje?: string }> => {
+      try {
+        const { correo, password } = input;
 
-      if (!resp.success) {
+        const resp = await loginApi({
+          correo,
+          contrasenia: password,
+        });
+
+        if (!resp.success) {
+          return {
+            ok: false,
+            mensaje: "Correo o contraseña incorrectos.",
+          };
+        }
+
+        const nuevaSesion: Sesion = {
+          correo: resp.correo,
+          rut: resp.rut,
+          nombre: resp.nombre,
+          rolNombre: resp.rolNombre,
+          isAdmin: resp.rolNombre === "ADMIN",
+          token: resp.token, // usamos el token del backend
+        };
+
+        setSesion(nuevaSesion);
+
+        // Guardamos para sobrevivir a F5
+        localStorage.setItem("authToken", resp.token);
+        localStorage.setItem("userRut", resp.rut);
+        localStorage.setItem("userRole", resp.rolNombre);
+        localStorage.setItem("userEmail", resp.correo);
+        localStorage.setItem("userName", resp.nombre);
+
+        return { ok: true };
+      } catch (error: any) {
+        console.error("[AuthContext] Error en iniciarSesion:", error);
         return {
           ok: false,
-          mensaje: "Correo o contraseña incorrectos.",
+          mensaje: error?.message ?? "Error al iniciar sesión",
         };
       }
-
-      const nuevaSesion: Sesion = {
-        correo: resp.correo,
-        rut: resp.rut,
-        nombre: resp.nombre,
-        rolNombre: resp.rolNombre,
-        isAdmin: resp.rolNombre === "ADMIN",
-      };
-
-      // Guardamos solo en memoria (sin localStorage)
-      setSesion(nuevaSesion);
-
-      return { ok: true };
-    } catch (e) {
-      console.error("Error conectando con users-service:", e);
-      return {
-        ok: false,
-        mensaje: "No se pudo conectar con el servidor de autenticación.",
-      };
-    }
-  }, []);
+    },
+    []
+  );
 
   // -------- Cerrar sesión --------
   const cerrarSesion = useCallback(() => {
     setSesion(null);
+    try {
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("userRut");
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("userEmail");
+      localStorage.removeItem("userName");
+    } catch {
+      // ignoramos errores de localStorage
+    }
   }, []);
 
-  const value = useMemo<AuthContextType>(
+  // Memo del value para no re-renderizar todo a cada rato
+  const value = useMemo(
     () => ({
       usuarios,
       sesion,

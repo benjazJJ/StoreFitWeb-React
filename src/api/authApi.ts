@@ -9,6 +9,7 @@ export type LoginRequest = {
 //Peticion de login
 export type LoginResponse = {
   success: boolean;
+  token: string;
   usuario: string;
   rut: string;
   nombre: string;

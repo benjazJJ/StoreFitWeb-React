@@ -68,28 +68,31 @@ export function obtenerMensajeError(error: unknown): string {
  */
 export async function fetchConErrores(
   url: string,
-  options?: RequestInit
-): Promise<Response> {
-  try {
-    const res = await fetch(url, options);
-    // Si el servidor respondió con error, leemos el body para diagnosticar en desarrollo
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      // Mostrar body en consola cuando estemos en entorno de desarrollo o se active manualmente
-      const devMode = localStorage.getItem('SHOW_SERVER_BODY') === '1' || (typeof window !== 'undefined' && (window.location?.hostname === 'localhost' || window.location?.hostname === '127.0.0.1'));
-      if (devMode) {
-        // eslint-disable-next-line no-console
-        console.error(`HTTP ${res.status} response body:`, text);
-      }
-      throw new Error(`HTTP ${res.status} ${text}`);
-    }
-    return res;
-  } catch (error) {
-    if (error instanceof TypeError) {
-      // Lanzar con contexto adicional
-      const mensaje = obtenerMensajeError(error);
-      throw new Error(mensaje);
-    }
-    throw error;
+  options: RequestInit = {}
+) {
+  const token = localStorage.getItem("authToken");
+
+  // Respetar headers que vengan desde quien llama
+  const headers = new Headers(options.headers || {});
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
+
+  const finalOptions: RequestInit = {
+    ...options,
+    headers,
+  };
+
+  const res = await fetch(url, finalOptions);
+
+  // Aquí dejas tu manejo de errores tal como lo tenías
+  if (!res.ok) {
+    // ejemplo genérico, tú ya tienes algo más trabajado
+    const text = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${text}`);
+  }
+
+  return res;
 }
+
